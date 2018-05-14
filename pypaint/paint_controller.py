@@ -23,14 +23,15 @@ class PaintController:
         Return a view with the necessary callbacks registered.
         """
         view = PaintView()
-        view.initialize()
-
         for event_type in ["<Button-1>", "<ButtonRelease-1>", "<B1-Motion>"]:
             view.bind_canvas_callback(event_type, self.handle_event)
         view.bind_toggle_callback(self.toggle)
         return view
 
     def start(self):
+        """
+        Trigger the view to start.
+        """
         self.view.start()
 
     def toggle(self):
@@ -56,6 +57,17 @@ class PaintController:
             raise RuntimeError("Unexpected shape type {}".format(self.current_mode))
 
     def _handle_event_rect(self, event):
+        """
+        Take action based on the given event.
+
+        Mouse button press      - save start point for the square
+        Mouse button release    - store the coordinates for the rectangle, 
+                                    clear the canvas, and (re)draw everything 
+                                    stored in history
+        Mouse button drag       - clear the canvas, redraw all of the 
+                                    previous drawings, then draw but do not
+                                    store the current rectangle
+        """
         event_coord = event.x, event.y
         if event.type == self.BUTTON_PRESS:
             self.start_pos = event_coord
@@ -63,19 +75,27 @@ class PaintController:
             self._add_to_history(ShapeType.RECT, 
                                     self.start_pos + event_coord)
             self.start_pos = None
-            self.view.clear_draw_history(self.history)
+            self.view.clear_draw_shapes(self.history)
         elif event.type == self.MOTION:
-            self.view.clear_draw_history(self.history)
+            self.view.clear_draw_shapes(self.history)
             self.view.draw_rect(self.start_pos + event_coord)
         else:
             raise RuntimeError("Unexpected event type {}".format(event.type))
 
     def _handle_event_line(self, event):
+        """
+        Take action based on the given event.
+
+        Mouse button press      - save start point for the line
+        Mouse button release    - stop drawing
+        Mouse button drag       - draw a line from last registered position 
+                                    to the current position
+        """
         event_coord = event.x, event.y
         if event.type == self.BUTTON_PRESS:
             self.start_pos = event_coord
         elif event.type == self.BUTTON_RELEASE:
-            pass
+            self.start_pos = None
         elif event.type == self.MOTION:
             coords = self.start_pos + event_coord
             self._add_to_history(ShapeType.LINE, coords)
@@ -85,4 +105,7 @@ class PaintController:
             raise RuntimeError("Unexpected event type {}".format(event.type))
 
     def _add_to_history(self, shape_type, coords):
+        """
+        Insert the given drawing information in the history.
+        """
         self.history.append((shape_type, coords))

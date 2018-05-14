@@ -1,7 +1,6 @@
 # PyPaint
 
-A helper application to allow visual communication with simple drawings.  The 
-current version is a quickly put together proof of concept.
+An application that enables collaborative drawing over a network.
 
 ## To Run 
 
