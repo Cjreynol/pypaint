@@ -57,6 +57,12 @@ class PaintView:
         """
         self.toggle_button["command"] = callback
 
+    def bind_quit_callback(self, callback):
+        """
+        Set the callback for when the window closes.
+        """
+        self.root.protocol("WM_DELETE_WINDOW", callback)
+
     def start(self):
         """
         Start the GUI's update loop.
