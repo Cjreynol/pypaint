@@ -18,7 +18,9 @@ class PaintController:
     BUTTON_RELEASE = '5'
     MOTION = '6'
 
-    SLEEP_DURATION = 0.5
+    SLEEP_DURATION = 0.0
+
+    CLOSE_MSG = "close"
 
     def __init__(self, is_host, port, peer_ip = None):
         self.view = self._create_view()
@@ -56,15 +58,15 @@ class PaintController:
         place them in the history.
         """
         while not self.done:
-            sleep(self.SLEEP_DURATION)
             with socket_lock:
                 try:
                     bytes_msg = self.connection.recv(Drawing.MSG_SIZE)
-                except timeout:
+                except (BlockingIOError, timeout):
+                    sleep(self.SLEEP_DURATION)
                     continue
-            drawing = Drawing.decode(bytes_msg)
-            with history_lock:
-                insort(self.history, drawing)
+                drawing = Drawing.decode(bytes_msg)
+                with history_lock:
+                    insort(self.history, drawing)
             
     def _wait_for_peer(self, port):
         """
@@ -118,19 +120,20 @@ class PaintController:
         """
         Start the view and the send and receive helper threads.
         """
-        self.view.start()
         Thread(target = self._send, args = 
-                (self.socket_lock)).start()
+                (self.socket_lock,)).start()
         Thread(target = self._receive, args = 
                 (self.socket_lock, self.history_lock)).start()
+        self.view.start()
 
     def stop(self):
         """
         Put the controller in a final state.
         """
         self.done = True
+        self.send_queue.put(self.CLOSE_MSG)
         self.connection.close()
-        self.send_queue.put("dummy value")  # aid send thread to stop blocking
+        self.view.root.destroy()
 
     def toggle(self):
         """
