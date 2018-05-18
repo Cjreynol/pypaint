@@ -64,9 +64,10 @@ class PaintController:
                 except (BlockingIOError, timeout):
                     sleep(self.SLEEP_DURATION)
                     continue
-                drawing = Drawing.decode(bytes_msg)
-                with history_lock:
-                    insort(self.history, drawing)
+            drawing = Drawing.decode(bytes_msg)
+            with history_lock:
+                insort(self.history, drawing)
+            self.view.clear_draw_shapes(self.history)
             
     def _wait_for_peer(self, port):
         """
