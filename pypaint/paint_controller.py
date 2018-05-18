@@ -20,7 +20,7 @@ class PaintController:
 
     SLEEP_DURATION = 0.5
 
-    def __init__(self, is_host, port = None, peer_ip = None):
+    def __init__(self, is_host, port, peer_ip = None):
         self.view = self._create_view()
         self.history = []
 
@@ -33,9 +33,9 @@ class PaintController:
         self.history_lock = Lock()
         self.done = False
 
-        if is_host and port is not None:
+        if is_host:
             self.connection = self._wait_for_peer(port)
-        elif not is_host and port is not None peer_ip is not None:
+        elif not is_host and peer_ip is not None:
             self.connection = self._connect_to_peer(peer_ip, port)
         else:
             raise RuntimeError("Proper arguments not provided.")
@@ -130,7 +130,7 @@ class PaintController:
         """
         self.done = True
         self.connection.close()
-        self.send_queue("dummy value")  # aid send thread to stop blocking
+        self.send_queue.put("dummy value")  # aid send thread to stop blocking
 
     def toggle(self):
         """

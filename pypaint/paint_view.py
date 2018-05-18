@@ -69,14 +69,14 @@ class PaintView:
         """
         self.root.mainloop()
 
-    def clear_draw_shapes(self, shapes):
+    def clear_draw_shapes(self, drawings):
         """
         Clear the canvas of all previous drawings, then draw every item in 
         the given shapes list.
         """
         self.canvas.delete(ALL)
-        for shape_type, coords in shapes:
-            self.draw_shape(shape_type, coords)
+        for drawing in drawings:
+            self.draw_shape(drawing.shape, drawing.coords)
 
     def draw_shape(self, shape_type, coords):
         """
