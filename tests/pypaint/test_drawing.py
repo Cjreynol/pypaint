@@ -11,6 +11,7 @@ class TestDrawing(TestCase):
     def setUp(self):
         self.drawing = Drawing(0, ShapeType.RECT, [0, 0, 1, 1])
 
-    def test_encoding_decoding_is_noop(self):
-        other = Drawing.decode(self.drawing.encode())
+    def test_encoding_decoding_are_equal(self):
+        bytes_array = self.drawing.encode()
+        other = Drawing.decode_drawing(bytes_array[Drawing.HEADER_SIZE:])
         self.assertEqual(self.drawing, other)

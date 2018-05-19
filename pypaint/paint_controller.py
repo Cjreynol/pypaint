@@ -1,4 +1,3 @@
-from bisect import insort
 from queue import Queue
 from socket import socket, timeout, SO_REUSEADDR, SOL_SOCKET
 from threading import Lock, Thread
@@ -11,7 +10,7 @@ from pypaint.shape_type import ShapeType
 
 class PaintController:
     """
-    Manages the View, drawing history, interface event handling, and the 
+    Manages the View, interface event handling, and the 
     network connection.
     """
 
@@ -28,7 +27,6 @@ class PaintController:
         Initialize the required state, then wait/connect to a peer.
         """
         self.view = self._create_view()
-        self.history = []
 
         self.start_pos = None
         self.last_drawing_id = None
@@ -37,7 +35,6 @@ class PaintController:
         self.send_queue = Queue()
 
         self.socket_lock = Lock()
-        self.history_lock = Lock()
         self.done = False
 
         if is_host:
@@ -57,22 +54,23 @@ class PaintController:
             with socket_lock:
                 self.connection.sendall(drawing.encode())
 
-    def _receive(self, socket_lock, history_lock):
+    def _receive(self, socket_lock):
         """
         Loop attempting to receive drawings from the peer connection and 
-        place them in the history.
+        having the view draw them.
         """
         while not self.done:
             with socket_lock:
                 try:
-                    bytes_msg = self.connection.recv(Drawing.MSG_SIZE)
+                    header_bytes = self.connection.recv(Drawing.HEADER_SIZE)
+                    _, remaining_bytes = Drawing.decode_header(header_bytes)
+                    drawing_bytes = self.connection.recv(remaining_bytes)
                 except (BlockingIOError, timeout):
                     sleep(self.SLEEP_DURATION)
                     continue
-            drawing = Drawing.decode(bytes_msg)
-            with history_lock:
-                insort(self.history, drawing)
-            self.view.draw_shape(drawing.shape, drawing.coords)
+            drawings = Drawing.decode_drawings(drawing_bytes)
+            for drawing in drawings:
+                self.view.draw_shape(drawing.shape, drawing.coords)
             
     def _wait_for_peer(self, port):
         """
@@ -129,7 +127,7 @@ class PaintController:
         Thread(target = self._send, args = 
                 (self.socket_lock,)).start()
         Thread(target = self._receive, args = 
-                (self.socket_lock, self.history_lock)).start()
+                (self.socket_lock,)).start()
         self.view.start()
 
     def stop(self):
@@ -177,7 +175,7 @@ class PaintController:
         if event.type == self.BUTTON_PRESS:
             self.start_pos = event_coord
         elif event.type == self.BUTTON_RELEASE:
-            self._add_to_history(ShapeType.RECT, self.start_pos + event_coord)
+            self._add_to_send_queue(ShapeType.RECT, self.start_pos + event_coord)
             self.view.clear_drawing_by_id(self.last_drawing_id)
             self.view.draw_rect(self.start_pos + event_coord)
 
@@ -207,18 +205,15 @@ class PaintController:
             self.start_pos = None
         elif event.type == self.MOTION:
             coords = self.start_pos + event_coord
-            self._add_to_history(ShapeType.LINE, coords)
+            self._add_to_send_queue(ShapeType.LINE, coords)
             self.view.draw_line(coords)
             self.start_pos = event_coord
         else:
             raise RuntimeError("Unexpected event type {}".format(event.type))
 
-    def _add_to_history(self, shape, coords):
+    def _add_to_send_queue(self, shape, coords):
         """
-        Add the new drawing to the history, and put it in the queue to be 
-        sent to a peer.
+        Create and add the new drawing to the send queue.
         """
         drawing = Drawing(time(), shape, coords)
-        with self.history_lock:
-            self.history.append(drawing)
         self.send_queue.put(drawing)
