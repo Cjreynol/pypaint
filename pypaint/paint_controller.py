@@ -11,7 +11,8 @@ from pypaint.shape_type import ShapeType
 
 class PaintController:
     """
-    Manages the View, drawing history, and interface event handling.
+    Manages the View, drawing history, interface event handling, and the 
+    network connection.
     """
 
     BUTTON_PRESS = '4'
@@ -23,10 +24,14 @@ class PaintController:
     CLOSE_MSG = "close"
 
     def __init__(self, is_host, port, peer_ip = None):
+        """
+        Initialize the required state, then wait/connect to a peer.
+        """
         self.view = self._create_view()
         self.history = []
 
         self.start_pos = None
+        self.last_drawing_id = None
         self.current_mode = ShapeType.RECT
 
         self.send_queue = Queue()
@@ -67,7 +72,7 @@ class PaintController:
             drawing = Drawing.decode(bytes_msg)
             with history_lock:
                 insort(self.history, drawing)
-            self.view.clear_draw_shapes(self.history)
+            self.view.draw_shape(drawing.shape, drawing.coords)
             
     def _wait_for_peer(self, port):
         """
@@ -163,23 +168,25 @@ class PaintController:
         Take action based on the given event.
 
         Mouse button press      - save start point for the square
-        Mouse button release    - store the coordinates for the rectangle, 
-                                    clear the canvas, and (re)draw everything 
-                                    stored in history
-        Mouse button drag       - clear the canvas, redraw all of the 
-                                    previous drawings, then draw but do not
-                                    store the current rectangle
+        Mouse button release    - store the new drawing, clear the last 
+                                    intermediate rect, then draw the new one
+        Mouse button drag       - delete the last intermediate rectangle, 
+                                    then draw the next
         """
         event_coord = event.x, event.y
         if event.type == self.BUTTON_PRESS:
             self.start_pos = event_coord
         elif event.type == self.BUTTON_RELEASE:
             self._add_to_history(ShapeType.RECT, self.start_pos + event_coord)
-            self.start_pos = None
-            self.view.clear_draw_shapes(self.history)
-        elif event.type == self.MOTION:
-            self.view.clear_draw_shapes(self.history)
+            self.view.clear_drawing_by_id(self.last_drawing_id)
             self.view.draw_rect(self.start_pos + event_coord)
+
+            self.start_pos = None
+            self.last_drawing_id = None
+        elif event.type == self.MOTION:
+            self.view.clear_drawing_by_id(self.last_drawing_id)
+            drawing_id = self.view.draw_rect(self.start_pos + event_coord)
+            self.last_drawing_id = drawing_id
         else:
             raise RuntimeError("Unexpected event type {}".format(event.type))
 
@@ -187,10 +194,11 @@ class PaintController:
         """
         Take action based on the given event.
 
-        Mouse button press      - save start point for the line
-        Mouse button release    - stop drawing
-        Mouse button drag       - draw a line from last registered position 
-                                    to the current position
+        Mouse button press      - save start point for the square
+        Mouse button release    - store the new drawing, clear the last 
+                                    intermediate rect, then draw the new one
+        Mouse button drag       - delete the last intermediate rectangle, 
+                                    then draw the next
         """
         event_coord = event.x, event.y
         if event.type == self.BUTTON_PRESS:
@@ -207,6 +215,8 @@ class PaintController:
 
     def _add_to_history(self, shape, coords):
         """
+        Add the new drawing to the history, and put it in the queue to be 
+        sent to a peer.
         """
         drawing = Drawing(time(), shape, coords)
         with self.history_lock:

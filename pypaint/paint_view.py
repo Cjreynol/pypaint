@@ -94,11 +94,17 @@ class PaintView:
         """
         Draw a rectangle using the opposite corner pairs specified in coords.
         """
-        self.canvas.create_rectangle(*coords)
+        return self.canvas.create_rectangle(*coords)
 
     def draw_line(self, coords):
         """
         Draw a line with the start/end pairs specified in coords.
         """
-        self.canvas.create_line(*coords, width = self.LINE_WIDTH, 
+        return self.canvas.create_line(*coords, width = self.LINE_WIDTH, 
                                     capstyle = ROUND)
+
+    def clear_drawing_by_id(self, drawing_id):
+        """
+        Delete the drawing with the given id from the canvas.
+        """
+        self.canvas.delete(drawing_id)
