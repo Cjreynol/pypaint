@@ -21,21 +21,22 @@ class Drawing:
         self.shape = shape
         self.coords = coords
 
+    
     def encode(self):
         """
         Return a byte array representing this instance.
         """
-        drawing_bytes =  pack(self.MSG_PACK_STR, self.timestamp, 
-                                self.shape.value, *self.coords)
-        header = self.create_header(drawing_bytes)
-        return header + drawing_bytes
+        return pack(self.MSG_PACK_STR, self.timestamp, self.shape.value, 
+                        *self.coords)
+        
 
-    def create_header(self, bytes_msg):
+    @staticmethod
+    def create_header(msg_body):
         """
-        Return a byte array representing a header for the given message.
+        Return a byte array representing a header for the given message body.
         """
-        non_header_length = len(bytes_msg)
-        return pack(self.HEADER_PACK_STR, self.HEADER_VERSION, 
+        non_header_length = len(msg_body)
+        return pack(Drawing.HEADER_PACK_STR, Drawing.HEADER_VERSION, 
                         non_header_length)
 
     @staticmethod

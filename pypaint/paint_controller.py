@@ -18,7 +18,7 @@ class PaintController:
     BUTTON_RELEASE = '5'
     MOTION = '6'
 
-    SLEEP_DURATION = 0.0
+    SLEEP_DURATION = 0.01
 
     CLOSE_MSG = "close"
 
@@ -50,9 +50,17 @@ class PaintController:
         connection.
         """
         while not self.done:
-            drawing = self.send_queue.get()
+            size = self.send_queue.qsize()
+            if size > 1:    # clear out the queue and send the batch
+                drawings = [self.send_queue.get() for _ in range(size)]
+            else:
+                drawings = [self.send_queue.get()]
+
+            drawings_bytes = b''.join([x.encode() for x in drawings])
+            msg = Drawing.create_header(drawings_bytes) + drawings_bytes
+
             with socket_lock:
-                self.connection.sendall(drawing.encode())
+                self.connection.sendall(msg)
 
     def _receive(self, socket_lock):
         """
