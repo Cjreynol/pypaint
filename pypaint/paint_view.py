@@ -69,17 +69,17 @@ class PaintView:
         """
         self.root.mainloop()
 
-    def draw_shape(self, shape_type, coords):
+    def draw_shape(self, drawing):
         """
         Determine and call the appropriate drawing function based on the 
         shape type.
         """
-        if shape_type == ShapeType.RECT:
-            self.draw_rect(coords)
-        elif shape_type == ShapeType.LINE:
-            self.draw_line(coords)
+        if drawing.shape == ShapeType.RECT:
+            self.draw_rect(drawing.coords)
+        elif drawing.shape == ShapeType.LINE:
+            self.draw_line(drawing.coords)
         else:
-            raise RuntimeError("Unexpected shape type {}".format(shape_type))
+            raise RuntimeError("Unexpected shape type {}".format(drawing.shape_type))
 
     def draw_rect(self, coords):
         """
