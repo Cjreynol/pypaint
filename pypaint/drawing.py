@@ -7,6 +7,8 @@ from pypaint.shape_type import ShapeType
 @total_ordering
 class Drawing:
     """
+    Datatype for the drawings created on the canvas, used to encode them for 
+    sending/receiving over a network.
     """
 
     HEADER_SIZE = 8
@@ -20,7 +22,6 @@ class Drawing:
         self.timestamp = timestamp
         self.shape = shape
         self.coords = coords
-
     
     def encode(self):
         """
@@ -29,7 +30,6 @@ class Drawing:
         return pack(self.MSG_PACK_STR, self.timestamp, self.shape.value, 
                         *self.coords)
         
-
     @staticmethod
     def create_header(msg_body):
         """
@@ -61,8 +61,6 @@ class Drawing:
             timestamp, shape_val, *coords = unpack(Drawing.MSG_PACK_STR, 
                                                     byte_array)
             drawing = Drawing(timestamp, ShapeType(shape_val), coords)
-        else:
-            print(len(byte_array))
         return drawing
 
     @staticmethod

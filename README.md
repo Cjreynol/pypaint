@@ -8,11 +8,16 @@ currently supports only a direct connection between two clients.
 Tested on Python version 3.6, but it should work on any recent version of 
 Python 3.  
 
-To start the application, run `python main.py` from the command line with the 
-appropriate arguments.  See the `main.py` script for details.  This will not 
-be a command-line interface in the future once the design has settled.  
+To start the application, run `python main.py` from the command line.  This 
+will bring up the paint window without a peer connection.  
+
+To host a peer connection, run `python main.py 1 <port-num>` where port-num 
+is the desired hosting port.  
+
+To connect to a hosting peer, run `python main.py 0 <port-num> <ip-address>` 
+where the port and ip are the hosts' information.  
 
 Example for running two clients locally on the same computer(need to be run 
-in separate shell instances, or in the background):  
-host - `python main.py True 50001`  
-peer - `python main.py '' 50001 localhost`
+in separate shell instances, or as background processes):  
+host - `python main.py 1 50001`  
+peer - `python main.py 0 50001 localhost`  

@@ -6,8 +6,9 @@ from pypaint.shape_type import ShapeType
 
 class PaintController:
     """
-    Manages the View, interface event handling, and the 
-    network connection.
+    Manages the View, interface event handling, and the network connection.
+
+    If the connection does not exist(is None) then the application works solo.
     """
 
     BUTTON_PRESS = '4'
@@ -15,8 +16,6 @@ class PaintController:
     MOTION = '6'
 
     def __init__(self, connection):
-        """
-        """
         self.connection = connection
         self.view = self._create_view()
 
@@ -37,6 +36,7 @@ class PaintController:
 
     def start(self):
         """
+        Start the controllers components.
         """
         if self.connection is not None:
             self.connection.start(self.view.draw_shape)

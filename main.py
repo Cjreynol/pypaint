@@ -7,7 +7,7 @@ from pypaint.paint_controller import PaintController
 def main(args):
     connection = None
     if len(argv) > 1:
-        is_host = bool(argv[1])
+        is_host = bool(int(argv[1]))
         port = int(argv[2])
         peer_ip = None
 

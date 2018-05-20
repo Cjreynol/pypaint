@@ -16,6 +16,8 @@ class Connection:
 
     def __init__(self, is_host, port, peer_ip = None):
         """
+        Initialize the state needed for data sending, then create/connect the 
+        socket.
         """
         self.done = False
         self.socket_lock = Lock()
@@ -32,6 +34,7 @@ class Connection:
     
     def start(self, receive_callback):
         """
+        Start the send and receive threads.
         """
         self.receive_callback = receive_callback
         Thread(target = self._send, args = (self.socket_lock,)).start()
@@ -76,6 +79,7 @@ class Connection:
 
     def close(self):
         """
+        Put the connection in a final state.
         """
         self.done = True
         self.send_queue.put(self.CLOSE_MSG)
@@ -108,8 +112,7 @@ class Connection:
 
     def _receive(self, socket_lock):
         """
-        Loop attempting to receive drawings from the peer connection and 
-        having the view draw them.
+        Loop attempting to receive drawings from the peer connection.
         """
         while not self.done:
             with socket_lock:
