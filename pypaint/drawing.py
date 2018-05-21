@@ -19,11 +19,14 @@ class Drawing:
     MSG_PACK_STR = "diI4i"
     MSG_SIZE = calcsize(MSG_PACK_STR)
 
-    def __init__(self, shape, thickness, coords):
-        self.timestamp = time()
+    def __init__(self, shape, thickness, coords, timestamp = None):
         self.shape = shape
         self.thickness = thickness
         self.coords = coords
+
+        self.timestamp = timestamp
+        if self.timestamp is None:
+            self.timestamp = time()
     
     def encode(self):
         """
@@ -62,8 +65,8 @@ class Drawing:
         if len(byte_array) == Drawing.MSG_SIZE:
             timestamp, shape_val, thickness, *coords= unpack(Drawing.MSG_PACK_STR, 
                                                                 byte_array)
-            drawing = Drawing(timestamp, DrawingType(shape_val), thickness, 
-                                coords)
+            drawing = Drawing(DrawingType(shape_val), thickness, 
+                                coords, timestamp)
         return drawing
 
     @staticmethod
@@ -81,7 +84,8 @@ class Drawing:
         if isinstance(self, other.__class__):
             return (self.timestamp == other.timestamp
                         and self.shape == other.shape
+                        and self.thickness == other.thickness
                         and self.coords == other.coords)
 
     def hash(self):
-        return hash((self.timestamp, self.shape, self.coords))
+        return hash((self.timestamp, self.shape, self.thickness, self.coords))

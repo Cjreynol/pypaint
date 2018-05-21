@@ -121,6 +121,8 @@ class PaintController:
             if drag_drawing:
                 self.view.clear_drawing_by_id(self.last_drawing_id)
             else:
+                if self.connection is not None:
+                    self.connection.add_to_send_queue(drawing)
                 self.start_pos = event_coord
 
             drawing_id = self.view.draw_shape(drawing)
