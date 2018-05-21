@@ -1,5 +1,6 @@
 from functools import total_ordering
 from struct import calcsize, pack, unpack
+from time import time
 
 from pypaint.drawing_type import DrawingType
 
@@ -18,8 +19,8 @@ class Drawing:
     MSG_PACK_STR = "diI4i"
     MSG_SIZE = calcsize(MSG_PACK_STR)
 
-    def __init__(self, timestamp, shape, thickness, coords):
-        self.timestamp = timestamp
+    def __init__(self, shape, thickness, coords):
+        self.timestamp = time()
         self.shape = shape
         self.thickness = thickness
         self.coords = coords

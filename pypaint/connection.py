@@ -1,7 +1,7 @@
 from queue import Queue
 from socket import socket, timeout, SO_REUSEADDR, SOL_SOCKET
 from threading import Lock, Thread
-from time import sleep, time
+from time import sleep
 
 from pypaint.drawing import Drawing
 
@@ -85,11 +85,10 @@ class Connection:
         self.send_queue.put(self.CLOSE_MSG)
         self.socket.close()
 
-    def add_to_send_queue(self, shape, thickness, coords):
+    def add_to_send_queue(self, drawing):
         """
-        Create and add the new drawing to the send queue.
+        Add the drawing to the send queue.
         """
-        drawing = Drawing(time(), shape, thickness, coords)
         self.send_queue.put(drawing)
 
     def _send(self, socket_lock):

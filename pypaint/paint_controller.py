@@ -15,7 +15,7 @@ class PaintController:
     MOTION = '6'
 
     DEFAULT_DRAWING_MODE = DrawingType.PEN
-    DEFAULT_THICKNESS = 1
+    DEFAULT_THICKNESS = PaintView.THICKNESS_MIN
 
     def __init__(self, connection):
         self.start_pos = None
@@ -81,157 +81,60 @@ class PaintController:
         """
         Clear the drawing canvas.
         """
-        self.view.clear_canvas()
+        drawing = Drawing(DrawingType.CLEAR, 0, (0, 0, 0, 0))
+        self.view.draw_shape(drawing)
         if self.connection is not None:
-            self.connection.add_to_send_queue(DrawingType.CLEAR, 0, 
-                                                (0, 0, 0, 0))
+            self.connection.add_to_send_queue(drawing)
 
     def handle_event(self, event):
         """
         Call the appropriate event handler based on the current drawing mode.
         """
-        if self.current_mode == DrawingType.PEN:
-            self._handle_event_pen(event)
-        elif self.current_mode == DrawingType.RECT:
-            self._handle_event_rect(event)
-        elif self.current_mode == DrawingType.OVAL:
-            self._handle_event_oval(event)
-        elif self.current_mode == DrawingType.LINE:
-            self._handle_event_line(event)
-        elif self.current_mode == DrawingType.ERASER:
-            self._handle_event_eraser(event)
+        self._handle_drawing(event, self.current_mode, 
+                                self._is_draggable(self.current_mode))
 
-    def _handle_event_pen(self, event):
+    def _is_draggable(self, drawing_type):
+        """
+        Return if the drawing type is one that is temporarily drawn until 
+        button release.
+        """
+        return drawing_type in {DrawingType.RECT, DrawingType.OVAL, 
+                                    DrawingType.LINE}
+
+    def _handle_drawing(self, event, drawing_type, drag_drawing):
         """
         Take action based on the given event.
 
-        Mouse button press      - save start point for the line
-        Mouse button drag       - draw a line from the last point the current 
+        Mouse button press      - save start point for the drawing
+        Mouse button drag       - potentially delete the last intermediate 
+                                    drawing, then draw the next
+        Mouse button release    - store the new drawing, potentially clear the 
+                                    last drawing, then draw the new one
         """
         event_coord = event.x, event.y
         if event.type == self.BUTTON_PRESS:
             self.start_pos = event_coord
-        elif event.type == self.BUTTON_RELEASE:
-            self.start_pos = None
         elif event.type == self.MOTION:
-            coords = self.start_pos + event_coord
-            if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.PEN, 
-                                                    self.thickness_value,
-                                                    coords)
-            self.view.draw_line(coords, self.thickness_value)
-            self.start_pos = event_coord
+            drawing = Drawing(drawing_type, self.thickness_value, 
+                                self.start_pos + event_coord)
 
-    def _handle_event_rect(self, event):
-        """
-        Take action based on the given event.
+            if drag_drawing:
+                self.view.clear_drawing_by_id(self.last_drawing_id)
+            else:
+                self.start_pos = event_coord
 
-        Mouse button press      - save start point for the square
-        Mouse button release    - store the new drawing, clear the last 
-                                    intermediate rect, then draw the new one
-        Mouse button drag       - delete the last intermediate rectangle, 
-                                    then draw the next
-        """
-        event_coord = event.x, event.y
-        if event.type == self.BUTTON_PRESS:
-            self.start_pos = event_coord
+            drawing_id = self.view.draw_shape(drawing)
+            self.last_drawing_id = drawing_id
         elif event.type == self.BUTTON_RELEASE:
-            if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.RECT, 
-                                                    self.thickness_value,
-                                                    (self.start_pos 
-                                                        + event_coord))
-            self.view.clear_drawing_by_id(self.last_drawing_id)
-            self.view.draw_rect(self.start_pos + event_coord, 
-                                    self.thickness_value)
+            drawing = Drawing(drawing_type, self.thickness_value, 
+                                self.start_pos + event_coord)
 
+            if self.connection is not None:
+                self.connection.add_to_send_queue(drawing)
+
+            if drag_drawing:
+                self.view.clear_drawing_by_id(self.last_drawing_id)
+
+            self.view.draw_shape(drawing)
             self.start_pos = None
             self.last_drawing_id = None
-        elif event.type == self.MOTION:
-            self.view.clear_drawing_by_id(self.last_drawing_id)
-            drawing_id = self.view.draw_rect(self.start_pos + event_coord, 
-                                                self.thickness_value)
-            self.last_drawing_id = drawing_id
-    
-    def _handle_event_oval(self, event):
-        """
-        Take action based on the given event.
-
-        Mouse button press      - save start point for the oval
-        Mouse button release    - store the new drawing, clear the last 
-                                    intermediate oval, then draw the new one
-        Mouse button drag       - delete the last intermediate oval, then 
-                                    draw the next
-        """
-        event_coord = event.x, event.y
-        if event.type == self.BUTTON_PRESS:
-            self.start_pos = event_coord
-        elif event.type == self.BUTTON_RELEASE:
-            if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.OVAL, 
-                                                    self.thickness_value,
-                                                    (self.start_pos 
-                                                        + event_coord))
-            self.view.clear_drawing_by_id(self.last_drawing_id)
-            self.view.draw_oval(self.start_pos + event_coord, 
-                                    self.thickness_value)
-
-            self.start_pos = None
-            self.last_drawing_id = None
-        elif event.type == self.MOTION:
-            self.view.clear_drawing_by_id(self.last_drawing_id)
-            drawing_id = self.view.draw_oval(self.start_pos + event_coord,
-                                                self.thickness_value)
-            self.last_drawing_id = drawing_id
-    
-    def _handle_event_line(self, event):
-        """
-        Take action based on the given event.
-
-        Mouse button press      - save start point for the line
-        Mouse button release    - store the new drawing, clear the last 
-                                    intermediate line, then draw the new one
-        Mouse button drag       - delete the last intermediate line, then 
-                                    draw the next
-        """
-        event_coord = event.x, event.y
-        if event.type == self.BUTTON_PRESS:
-            self.start_pos = event_coord
-        elif event.type == self.BUTTON_RELEASE:
-            if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.LINE, 
-                                                    self.thickness_value,
-                                                    (self.start_pos 
-                                                        + event_coord))
-            self.view.clear_drawing_by_id(self.last_drawing_id)
-            self.view.draw_line(self.start_pos + event_coord, 
-                                    self.thickness_value)
-
-            self.start_pos = None
-            self.last_drawing_id = None
-        elif event.type == self.MOTION:
-            self.view.clear_drawing_by_id(self.last_drawing_id)
-            drawing_id = self.view.draw_line(self.start_pos + event_coord, 
-                                                self.thickness_value)
-            self.last_drawing_id = drawing_id
-    
-    def _handle_event_eraser(self, event):
-        """
-        Take action based on the given event.
-
-        Mouse button press      - save start point for the line
-        Mouse button drag       - draw a line from the last point the current 
-        """
-        event_coord = event.x, event.y
-        if event.type == self.BUTTON_PRESS:
-            self.start_pos = event_coord
-        elif event.type == self.BUTTON_RELEASE:
-            self.start_pos = None
-        elif event.type == self.MOTION:
-            coords = self.start_pos + event_coord
-            if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.ERASER, 
-                                                    self.thickness_value,
-                                                    coords)
-            self.view.draw_eraser_line(coords, self.thickness_value)
-            self.start_pos = event_coord

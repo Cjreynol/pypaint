@@ -126,44 +126,36 @@ class PaintView:
         """
         Determine and call the appropriate drawing function based on the 
         shape type.
-
-        Used when drawings are received over the network.
         """
-        if drawing.shape == DrawingType.PEN:
-            self.draw_line(drawing.coords, drawing.thickness)
-        elif drawing.shape == DrawingType.RECT:
-            self.draw_rect(drawing.coords, drawing.thickness)
-        elif drawing.shape == DrawingType.OVAL:
-            self.draw_oval(drawing.coords, drawing.thickness)
-        elif drawing.shape == DrawingType.LINE:
-            self.draw_line(drawing.coords, drawing.thickness)
-        elif drawing.shape == DrawingType.ERASER:
-            self.draw_eraser_line(drawing.coords, drawing.thickness)
-        elif drawing.shape == DrawingType.CLEAR:
-            self.clear_canvas()
-        else:
-            raise RuntimeError("Unexpected shape type {}".format(drawing.shape))
+        lookup = {DrawingType.PEN : self._draw_line, 
+                    DrawingType.RECT : self._draw_rect,
+                    DrawingType.OVAL : self._draw_oval,
+                    DrawingType.LINE : self._draw_line,
+                    DrawingType.ERASER : self._draw_eraser_line,
+                    DrawingType.CLEAR : self._clear_canvas}
+        draw_func = lookup[drawing.shape]
+        return draw_func(drawing.coords, drawing.thickness)
 
-    def draw_rect(self, coords, thickness):
+    def _draw_rect(self, coords, thickness):
         """
         Draw a rectangle using the opposite corner pairs specified in coords.
         """
         return self.canvas.create_rectangle(*coords, width = thickness)
 
-    def draw_oval(self, coords, thickness):
+    def _draw_oval(self, coords, thickness):
         """
         Draw an oval using the corners specificed in coords.
         """
         return self.canvas.create_oval(*coords, width = thickness)
 
-    def draw_line(self, coords, thickness):
+    def _draw_line(self, coords, thickness):
         """
         Draw a line with the start/end pairs specified in coords.
         """
         return self.canvas.create_line(*coords, width = thickness, 
                                         capstyle = ROUND)
 
-    def draw_eraser_line(self, coords, thickness):
+    def _draw_eraser_line(self, coords, thickness):
         """
         Draw a line that is white, to "erase" previous drawings.
         """
@@ -171,17 +163,19 @@ class PaintView:
                                         capstyle = ROUND, 
                                         fill = self.ERASER_COLOR)
 
+    def _clear_canvas(self, *args):
+        """
+        Clear the canvas of all drawings.
+
+        The *args is to match the signature of the other drawing functions.
+        """
+        self.canvas.delete(ALL)
+
     def clear_drawing_by_id(self, drawing_id):
         """
         Delete the drawing with the given id from the canvas.
         """
         self.canvas.delete(drawing_id)
-
-    def clear_canvas(self):
-        """
-        Clear the canvas of all drawings.
-        """
-        self.canvas.delete(ALL)
 
     def update_tool_text(self, text):
         """
