@@ -1,5 +1,5 @@
 from functools import total_ordering
-from struct import pack, unpack
+from struct import calcsize, pack, unpack
 
 from pypaint.drawing_type import DrawingType
 
@@ -11,16 +11,17 @@ class Drawing:
     sending/receiving over a network.
     """
 
-    HEADER_SIZE = 8
     HEADER_VERSION = 1
     HEADER_PACK_STR = "II"
+    HEADER_SIZE = calcsize(HEADER_PACK_STR)
 
-    MSG_SIZE = 28
-    MSG_PACK_STR = "d5i"
+    MSG_PACK_STR = "diI4i"
+    MSG_SIZE = calcsize(MSG_PACK_STR)
 
-    def __init__(self, timestamp, shape, coords):
+    def __init__(self, timestamp, shape, thickness, coords):
         self.timestamp = timestamp
         self.shape = shape
+        self.thickness = thickness
         self.coords = coords
     
     def encode(self):
@@ -28,7 +29,7 @@ class Drawing:
         Return a byte array representing this instance.
         """
         return pack(self.MSG_PACK_STR, self.timestamp, self.shape.value, 
-                        *self.coords)
+                        self.thickness, *self.coords)
         
     @staticmethod
     def create_header(msg_body):
@@ -58,9 +59,10 @@ class Drawing:
         """
         drawing = None
         if len(byte_array) == Drawing.MSG_SIZE:
-            timestamp, shape_val, *coords = unpack(Drawing.MSG_PACK_STR, 
-                                                    byte_array)
-            drawing = Drawing(timestamp, DrawingType(shape_val), coords)
+            timestamp, shape_val, thickness, *coords= unpack(Drawing.MSG_PACK_STR, 
+                                                                byte_array)
+            drawing = Drawing(timestamp, DrawingType(shape_val), thickness, 
+                                coords)
         return drawing
 
     @staticmethod

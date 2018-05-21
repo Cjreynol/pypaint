@@ -85,11 +85,11 @@ class Connection:
         self.send_queue.put(self.CLOSE_MSG)
         self.socket.close()
 
-    def add_to_send_queue(self, shape, coords):
+    def add_to_send_queue(self, shape, thickness, coords):
         """
         Create and add the new drawing to the send queue.
         """
-        drawing = Drawing(time(), shape, coords)
+        drawing = Drawing(time(), shape, thickness, coords)
         self.send_queue.put(drawing)
 
     def _send(self, socket_lock):

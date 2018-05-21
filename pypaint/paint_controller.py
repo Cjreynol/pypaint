@@ -14,12 +14,15 @@ class PaintController:
     BUTTON_RELEASE = '5'
     MOTION = '6'
 
-    DEFAULT_DRAWING = DrawingType.PEN
+    DEFAULT_DRAWING_MODE = DrawingType.PEN
+    DEFAULT_THICKNESS = 1
 
     def __init__(self, connection):
         self.start_pos = None
         self.last_drawing_id = None
-        self.current_mode = DrawingType.PEN
+
+        self.current_mode = self.DEFAULT_DRAWING_MODE
+        self.current_thickness = self.DEFAULT_THICKNESS
 
         self.connection = connection
         self.view = self._create_view()
@@ -31,12 +34,13 @@ class PaintController:
         view = PaintView()
         for event_type in ["<Button-1>", "<ButtonRelease-1>", "<B1-Motion>"]:
             view.bind_canvas_callback(event_type, self.handle_event)
-        view.bind_button_callbacks(self.set_mode_generator(DrawingType.PEN),
+        view.bind_tool_button_callbacks(self.set_mode_generator(DrawingType.PEN),
                                     self.set_mode_generator(DrawingType.RECT),
                                     self.set_mode_generator(DrawingType.OVAL),
                                     self.set_mode_generator(DrawingType.LINE),
                                     self.set_mode_generator(DrawingType.ERASER),
                                     self.clear_callback)
+        view.bind_thickness_scale_callback(self.thickness_callback)
         view.bind_quit_callback(self.stop)
         view.update_tool_text(str(self.current_mode))
         return view
@@ -67,14 +71,20 @@ class PaintController:
             self.view.update_tool_text(str(drawing_type))
         return f
 
+    def thickness_callback(self, thickness_value):
+        """
+        Set the current thickness value.
+        """
+        self.thickness_value = int(thickness_value)
+
     def clear_callback(self):
         """
         Clear the drawing canvas.
         """
         self.view.clear_canvas()
         if self.connection is not None:
-            self.connection.add_to_send_queue(DrawingType.CLEAR, (0, 0, 0, 0))
-        
+            self.connection.add_to_send_queue(DrawingType.CLEAR, 0, 
+                                                (0, 0, 0, 0))
 
     def handle_event(self, event):
         """
@@ -106,8 +116,10 @@ class PaintController:
         elif event.type == self.MOTION:
             coords = self.start_pos + event_coord
             if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.PEN, coords)
-            self.view.draw_line(coords)
+                self.connection.add_to_send_queue(DrawingType.PEN, 
+                                                    self.thickness_value,
+                                                    coords)
+            self.view.draw_line(coords, self.thickness_value)
             self.start_pos = event_coord
 
     def _handle_event_rect(self, event):
@@ -125,15 +137,20 @@ class PaintController:
             self.start_pos = event_coord
         elif event.type == self.BUTTON_RELEASE:
             if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.RECT, self.start_pos + event_coord)
+                self.connection.add_to_send_queue(DrawingType.RECT, 
+                                                    self.thickness_value,
+                                                    (self.start_pos 
+                                                        + event_coord))
             self.view.clear_drawing_by_id(self.last_drawing_id)
-            self.view.draw_rect(self.start_pos + event_coord)
+            self.view.draw_rect(self.start_pos + event_coord, 
+                                    self.thickness_value)
 
             self.start_pos = None
             self.last_drawing_id = None
         elif event.type == self.MOTION:
             self.view.clear_drawing_by_id(self.last_drawing_id)
-            drawing_id = self.view.draw_rect(self.start_pos + event_coord)
+            drawing_id = self.view.draw_rect(self.start_pos + event_coord, 
+                                                self.thickness_value)
             self.last_drawing_id = drawing_id
     
     def _handle_event_oval(self, event):
@@ -151,15 +168,20 @@ class PaintController:
             self.start_pos = event_coord
         elif event.type == self.BUTTON_RELEASE:
             if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.OVAL, self.start_pos + event_coord)
+                self.connection.add_to_send_queue(DrawingType.OVAL, 
+                                                    self.thickness_value,
+                                                    (self.start_pos 
+                                                        + event_coord))
             self.view.clear_drawing_by_id(self.last_drawing_id)
-            self.view.draw_oval(self.start_pos + event_coord)
+            self.view.draw_oval(self.start_pos + event_coord, 
+                                    self.thickness_value)
 
             self.start_pos = None
             self.last_drawing_id = None
         elif event.type == self.MOTION:
             self.view.clear_drawing_by_id(self.last_drawing_id)
-            drawing_id = self.view.draw_oval(self.start_pos + event_coord)
+            drawing_id = self.view.draw_oval(self.start_pos + event_coord,
+                                                self.thickness_value)
             self.last_drawing_id = drawing_id
     
     def _handle_event_line(self, event):
@@ -177,15 +199,20 @@ class PaintController:
             self.start_pos = event_coord
         elif event.type == self.BUTTON_RELEASE:
             if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.LINE, self.start_pos + event_coord)
+                self.connection.add_to_send_queue(DrawingType.LINE, 
+                                                    self.thickness_value,
+                                                    (self.start_pos 
+                                                        + event_coord))
             self.view.clear_drawing_by_id(self.last_drawing_id)
-            self.view.draw_line(self.start_pos + event_coord)
+            self.view.draw_line(self.start_pos + event_coord, 
+                                    self.thickness_value)
 
             self.start_pos = None
             self.last_drawing_id = None
         elif event.type == self.MOTION:
             self.view.clear_drawing_by_id(self.last_drawing_id)
-            drawing_id = self.view.draw_line(self.start_pos + event_coord)
+            drawing_id = self.view.draw_line(self.start_pos + event_coord, 
+                                                self.thickness_value)
             self.last_drawing_id = drawing_id
     
     def _handle_event_eraser(self, event):
@@ -203,6 +230,8 @@ class PaintController:
         elif event.type == self.MOTION:
             coords = self.start_pos + event_coord
             if self.connection is not None:
-                self.connection.add_to_send_queue(DrawingType.ERASER, coords)
-            self.view.draw_eraser_line(coords)
+                self.connection.add_to_send_queue(DrawingType.ERASER, 
+                                                    self.thickness_value,
+                                                    coords)
+            self.view.draw_eraser_line(coords, self.thickness_value)
             self.start_pos = event_coord
