@@ -1,7 +1,7 @@
 from functools import total_ordering
 from struct import pack, unpack
 
-from pypaint.shape_type import ShapeType
+from pypaint.drawing_type import DrawingType
 
 
 @total_ordering
@@ -60,7 +60,7 @@ class Drawing:
         if len(byte_array) == Drawing.MSG_SIZE:
             timestamp, shape_val, *coords = unpack(Drawing.MSG_PACK_STR, 
                                                     byte_array)
-            drawing = Drawing(timestamp, ShapeType(shape_val), coords)
+            drawing = Drawing(timestamp, DrawingType(shape_val), coords)
         return drawing
 
     @staticmethod

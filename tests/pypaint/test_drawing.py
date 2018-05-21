@@ -3,13 +3,13 @@ from unittest import TestCase
 from time import time
 
 from pypaint.drawing import Drawing
-from pypaint.shape_type import ShapeType
+from pypaint.drawing_type import DrawingType
 
 
 class TestDrawing(TestCase):
     
     def setUp(self):
-        self.drawing = Drawing(0, ShapeType.RECT, [0, 0, 1, 1])
+        self.drawing = Drawing(0, DrawingType.RECT, [0, 0, 1, 1])
 
     def test_encoding_decoding_are_equal(self):
         bytes_array = self.drawing.encode()
