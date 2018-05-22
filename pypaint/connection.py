@@ -98,16 +98,20 @@ class Connection:
         """
         while not self.done:
             size = self.send_queue.qsize()
-            if size > 1:    # clear out the queue and send the batch
+            if size > 1:    # clear out the queue and send all
                 drawings = [self.send_queue.get() for _ in range(size)]
             else:
                 drawings = [self.send_queue.get()]
 
             drawings_bytes = b''.join([x.encode() for x in drawings])
-            msg = Drawing.create_header(drawings_bytes) + drawings_bytes
+            header = Drawing.create_header(drawings_bytes)
+            if len(drawings_bytes) == 0 or len(header) == 0:
+                continue
 
+            msg = header + drawings_bytes
             with socket_lock:
-                self.socket.sendall(msg)
+                if not self.done:
+                    self.socket.sendall(msg)
 
     def _receive(self, socket_lock):
         """
@@ -117,12 +121,15 @@ class Connection:
             with socket_lock:
                 try:
                     header_bytes = self.socket.recv(Drawing.HEADER_SIZE)
-                    _, remaining_bytes = Drawing.decode_header(header_bytes)
-                    drawing_bytes = self.socket.recv(remaining_bytes)
+                    if len(header_bytes) > 0:
+                        header = Drawing.decode_header(header_bytes)
+                        if header is not None:  # error decoding
+                            _, remaining_bytes = header
+                            drawing_bytes = self.socket.recv(remaining_bytes)
+                            drawings = Drawing.decode_drawings(drawing_bytes)
+                            for drawing in drawings:
+                                if drawing is not None: # error decoding
+                                    self.receive_callback(drawing)
                 except (BlockingIOError, timeout):
                     sleep(self.SLEEP_DURATION)
                     continue
-            drawings = Drawing.decode_drawings(drawing_bytes)
-
-            for drawing in drawings:
-                self.receive_callback(drawing)

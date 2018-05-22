@@ -1,5 +1,5 @@
 from functools import total_ordering
-from struct import calcsize, pack, unpack
+from struct import calcsize, error, pack, unpack
 from time import time
 
 from pypaint.drawing_type import DrawingType
@@ -32,8 +32,14 @@ class Drawing:
         """
         Return a byte array representing this instance.
         """
-        return pack(self.MSG_PACK_STR, self.timestamp, self.shape.value, 
-                        self.thickness, *self.coords)
+        try:
+            bytes_msg = pack(self.MSG_PACK_STR, self.timestamp, self.shape.value, 
+                                self.thickness, *self.coords)
+        except error as err:    # struct.error
+            print("Error in encoding: {}".format(err))
+            bytes_msg = b''
+
+        return bytes_msg
         
     @staticmethod
     def create_header(msg_body):
@@ -41,8 +47,14 @@ class Drawing:
         Return a byte array representing a header for the given message body.
         """
         non_header_length = len(msg_body)
-        return pack(Drawing.HEADER_PACK_STR, Drawing.HEADER_VERSION, 
-                        non_header_length)
+        try:
+            bytes_header = pack(Drawing.HEADER_PACK_STR, 
+                                    Drawing.HEADER_VERSION, non_header_length)
+        except error as err:    # struct.error
+            print("Error in creating header: {}".format(err))
+            bytes_header = b''
+
+        return bytes_header
 
     @staticmethod
     def decode_drawings(byte_array):
@@ -63,10 +75,14 @@ class Drawing:
         """
         drawing = None
         if len(byte_array) == Drawing.MSG_SIZE:
-            timestamp, shape_val, thickness, *coords= unpack(Drawing.MSG_PACK_STR, 
-                                                                byte_array)
-            drawing = Drawing(DrawingType(shape_val), thickness, 
+            try:
+                timestamp, shape_val, thickness, *coords= unpack(
+                                                        Drawing.MSG_PACK_STR, 
+                                                        byte_array)
+                drawing = Drawing(DrawingType(shape_val), thickness, 
                                 coords, timestamp)
+            except (ValueError, error) as err:  # struct.error
+                print("Error in decoding: {}".format(err))
         return drawing
 
     @staticmethod
@@ -74,8 +90,14 @@ class Drawing:
         """
         Return the version number and message length from the byte_array.
         """
-        return unpack(Drawing.HEADER_PACK_STR, byte_array)
+        header = None
+        try:
+            header =  unpack(Drawing.HEADER_PACK_STR, byte_array)
+        except error as err:    # struct.error
+            print("Error in decoding header: {}".format(err))
         
+        return header
+
     def __lt__(self, other):
         return self.timestamp < other.timestamp
 
