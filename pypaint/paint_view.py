@@ -6,7 +6,7 @@ from pypaint.drawing_type import DrawingType
 
 class PaintView:
     """
-    Manages the Tkinter window and its widgets.
+    Manages the Tkinter window for a PyPaint instance.
     """
 
     WINDOW_TITLE = "PyPaint"
@@ -21,8 +21,9 @@ class PaintView:
 
     CANVAS_HEIGHT = 600
     CANVAS_WIDTH = 800
+    CANVAS_BACKGROUND_COLOR = "#ffffff"
 
-    ERASER_COLOR= "#ffffff"
+    ERASER_COLOR = CANVAS_BACKGROUND_COLOR
 
     PEN_BUTTON_TEXT = "Pen"
     RECT_BUTTON_TEXT = "Rectangle"
@@ -54,7 +55,8 @@ class PaintView:
         Instantiate the widgets for the GUI.
         """
         self.canvas = Canvas(self.root, width = self.CANVAS_WIDTH, 
-                                height = self.CANVAS_HEIGHT)
+                                height = self.CANVAS_HEIGHT, 
+                                background = self.CANVAS_BACKGROUND_COLOR)
         self.toolbar = Frame(self.root, width = self.FRAME_WIDTH, 
                                 relief = RAISED, bd = self.FRAME_BORDER_WIDTH)
         self.current_tool_label = Label(self.toolbar, 

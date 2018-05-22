@@ -1,6 +1,8 @@
+from pypaint.connection import Connection
 from pypaint.drawing import Drawing
-from pypaint.paint_view import PaintView
 from pypaint.drawing_type import DrawingType
+from pypaint.paint_view import PaintView
+from pypaint.setup_view import SetupView
 
 
 class PaintController:
@@ -17,29 +19,73 @@ class PaintController:
     DEFAULT_DRAWING_MODE = DrawingType.PEN
     DEFAULT_THICKNESS = PaintView.THICKNESS_MIN
 
-    def __init__(self, connection):
+    def __init__(self):
         self.start_pos = None
         self.last_drawing_id = None
 
         self.current_mode = self.DEFAULT_DRAWING_MODE
         self.current_thickness = self.DEFAULT_THICKNESS
 
-        self.connection = connection
-        self.view = self._create_view()
+        self.connection = None
+        self.view = self._create_setup_view()
             
-    def _create_view(self):
+    def _create_setup_view(self):
         """
-        Return a view with the necessary callbacks registered.
+        Return a setup view with the necessary callbacks registered.
+        """
+        view = SetupView()
+        view.bind_host_button_callback(self.host_button_callback)
+        view.bind_connect_button_callback(self.connect_button_callback)
+        view.bind_offline_button_callback(self.offline_button_callback)
+        return view
+
+    def host_button_callback(self, ip_entry, port_entry):
+        """
+        """
+        def f():
+            self.connection = Connection(True, int(port_entry.get()), 
+                                            ip_entry.get())
+            self._swap_views()
+        return f
+    
+    def connect_button_callback(self, ip_entry, port_entry):
+        """
+        """
+        def f():
+            self.connection = Connection(False, int(port_entry.get()), 
+                                            ip_entry.get())
+            self._swap_views()
+        return f
+
+    def offline_button_callback(self, ip_entry, port_entry):
+        """
+        """
+        def f():
+            self._swap_views()
+        return f
+
+    def _swap_views(self):
+        """
+        Destroy the setup view and create/start the paint view.
+        """
+        self.view.root.destroy()
+        self.view = self._create_paint_view()
+        self.start()
+
+    def _create_paint_view(self):
+        """
+        Return a paint view with the necessary callbacks registered.
         """
         view = PaintView()
         for event_type in ["<Button-1>", "<ButtonRelease-1>", "<B1-Motion>"]:
             view.bind_canvas_callback(event_type, self.handle_event)
-        view.bind_tool_button_callbacks(self.set_mode_generator(DrawingType.PEN),
-                                    self.set_mode_generator(DrawingType.RECT),
-                                    self.set_mode_generator(DrawingType.OVAL),
-                                    self.set_mode_generator(DrawingType.LINE),
-                                    self.set_mode_generator(DrawingType.ERASER),
-                                    self.clear_callback)
+        view.bind_tool_button_callbacks(
+                                self.set_mode_generator(DrawingType.PEN),
+                                self.set_mode_generator(DrawingType.RECT),
+                                self.set_mode_generator(DrawingType.OVAL),
+                                self.set_mode_generator(DrawingType.LINE),
+                                self.set_mode_generator(DrawingType.ERASER),
+                                self.clear_callback)
         view.bind_thickness_scale_callback(self.thickness_callback)
         view.bind_quit_callback(self.stop)
         view.update_tool_text(str(self.current_mode))
@@ -104,39 +150,49 @@ class PaintController:
     def _handle_drawing(self, event, drawing_type, drag_drawing):
         """
         Take action based on the given event.
+        """
+        if event.type == self.BUTTON_PRESS:
+            self._handle_button_press_event(event, drawing_type, drag_drawing)
+        elif event.type == self.MOTION:
+            self._handle_motion_event(event, drawing_type, drag_drawing)
+        elif event.type == self.BUTTON_RELEASE:
+            self._handle_button_release_event(event, drawing_type, drag_drawing)
+    
+    def _handle_button_press_event(self, event, drawing_type, drag_drawing):
+        """
+        Save the start point for the drawing.
+        """
+        self.start_pos = event.x, event.y
 
-        Mouse button press      - save start point for the drawing
-        Mouse button drag       - potentially delete the last intermediate 
-                                    drawing, then draw the next
-        Mouse button release    - store the new drawing, potentially clear the 
-                                    last drawing, then draw the new one
+    def _handle_motion_event(self, event, drawing_type, drag_drawing):
+        """
         """
         event_coord = event.x, event.y
-        if event.type == self.BUTTON_PRESS:
-            self.start_pos = event_coord
-        elif event.type == self.MOTION:
-            drawing = Drawing(drawing_type, self.thickness_value, 
-                                self.start_pos + event_coord)
+        drawing = Drawing(drawing_type, self.thickness_value, 
+                            self.start_pos + event_coord)
 
-            if drag_drawing:
-                self.view.clear_drawing_by_id(self.last_drawing_id)
-            else:
-                if self.connection is not None:
-                    self.connection.add_to_send_queue(drawing)
-                self.start_pos = event_coord
-
-            drawing_id = self.view.draw_shape(drawing)
-            self.last_drawing_id = drawing_id
-        elif event.type == self.BUTTON_RELEASE:
-            drawing = Drawing(drawing_type, self.thickness_value, 
-                                self.start_pos + event_coord)
-
+        if drag_drawing:
+            self.view.clear_drawing_by_id(self.last_drawing_id)
+        else:
             if self.connection is not None:
                 self.connection.add_to_send_queue(drawing)
+            self.start_pos = event_coord
 
-            if drag_drawing:
-                self.view.clear_drawing_by_id(self.last_drawing_id)
+        drawing_id = self.view.draw_shape(drawing)
+        self.last_drawing_id = drawing_id
 
-            self.view.draw_shape(drawing)
-            self.start_pos = None
-            self.last_drawing_id = None
+    def _handle_button_release_event(self, event, drawing_type, drag_drawing):
+        """
+        """
+        drawing = Drawing(drawing_type, self.thickness_value, 
+                            self.start_pos + (event.x, event.y))
+
+        if self.connection is not None:
+            self.connection.add_to_send_queue(drawing)
+
+        if drag_drawing:
+            self.view.clear_drawing_by_id(self.last_drawing_id)
+
+        self.view.draw_shape(drawing)
+        self.start_pos = None
+        self.last_drawing_id = None
