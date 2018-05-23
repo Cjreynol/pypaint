@@ -97,39 +97,43 @@ class Connection:
         connection.
         """
         while not self.done:
-            size = self.send_queue.qsize()
-            if size > 1:    # clear out the queue and send all
-                drawings = [self.send_queue.get() for _ in range(size)]
-            else:
-                drawings = [self.send_queue.get()]
+            try:
+                size = self.send_queue.qsize()
+                if size > 1:    # clear out the queue and send all
+                    drawings = [self.send_queue.get() for _ in range(size)]
+                else:
+                    drawings = [self.send_queue.get()]
 
-            drawings_bytes = b''.join([x.encode() for x in drawings])
-            header = Drawing.create_header(drawings_bytes)
-            if len(drawings_bytes) == 0 or len(header) == 0:
-                continue
+                drawings_bytes = b''.join([x.encode() for x in drawings])
+                header = Drawing.create_header(drawings_bytes)
+                if len(drawings_bytes) == 0 or len(header) == 0:
+                    continue
 
-            msg = header + drawings_bytes
-            with socket_lock:
-                if not self.done:
-                    self.socket.sendall(msg)
+                msg = header + drawings_bytes
+                with socket_lock:
+                    if not self.done:
+                        self.socket.sendall(msg)
+            except Exception as err:
+                print("Unexpected exception occurred, send thread may be in a corrupted state\nError: {}".format(err))
 
     def _receive(self, socket_lock):
         """
         Loop attempting to receive drawings from the peer connection.
         """
         while not self.done:
-            with socket_lock:
-                try:
-                    header_bytes = self.socket.recv(Drawing.HEADER_SIZE)
-                    if len(header_bytes) > 0:
-                        header = Drawing.decode_header(header_bytes)
-                        if header is not None:  # error decoding
-                            _, remaining_bytes = header
-                            drawing_bytes = self.socket.recv(remaining_bytes)
-                            drawings = Drawing.decode_drawings(drawing_bytes)
-                            for drawing in drawings:
-                                if drawing is not None: # error decoding
-                                    self.receive_callback(drawing)
-                except (BlockingIOError, timeout):
-                    sleep(self.SLEEP_DURATION)
-                    continue
+            try:
+                with socket_lock:
+                        header_bytes = self.socket.recv(Drawing.HEADER_SIZE)
+                        if len(header_bytes) > 0:
+                            header = Drawing.decode_header(header_bytes)
+                            if header is not None:  # error decoding
+                                _, remaining_bytes = header
+                                drawing_bytes = self.socket.recv(remaining_bytes)
+                                drawings = Drawing.decode_drawings(drawing_bytes)
+                                for drawing in drawings:
+                                    if drawing is not None: # error decoding
+                                        self.receive_callback(drawing)
+            except (BlockingIOError, timeout):
+                sleep(self.SLEEP_DURATION)
+            except Exception as err:
+                print("Unexpected exception occurred, receive thread may be in a corrupted state\nError: {}".format(err))
