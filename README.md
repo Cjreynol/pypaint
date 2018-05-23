@@ -15,14 +15,14 @@ needed for "Connect", and neither is required for "Offline".
 
 ### Example Running Two Clients Locally
 
-![Host setup](https://user-images.githubusercontent.com/4585721/40438151-f110c910-5e7c-11e8-8c9f-a745b9474794.png "Host setup")  
+![Host setup](https://user-images.githubusercontent.com/4585721/40455655-9e9560b0-5eb3-11e8-890c-a7e8bebfb090.png "Host setup")  
 Pick a port for the host, and hit the "Host" button.  
-![Waiting for connection](https://user-images.githubusercontent.com/4585721/40438153-f1289c34-5e7c-11e8-8576-3df815538666.png "Waiting for connection")  
+![Waiting for connection](https://user-images.githubusercontent.com/4585721/40455656-9ea91dda-5eb3-11e8-99f2-60d55947fa18.png "Waiting for connection")  
 The GUI will visually hang with the button pressed down, but it is waiting 
 for a connection in the background.  
-![Peer connection](https://user-images.githubusercontent.com/4585721/40438154-f13ca314-5e7c-11e8-9c8c-e22004d10423.png "Peer connection")  
+![Peer connection](https://user-images.githubusercontent.com/4585721/40455657-9ebd89f0-5eb3-11e8-9d9a-59d0cb5a2af6.png "Peer connection")  
 Enter the host port and their ip address then hit the "Connect" button.  
-![Paint window](https://user-images.githubusercontent.com/4585721/40438155-f14ef74e-5e7c-11e8-916f-a8e169051f45.png "Paint window")  
+![Paint window](https://user-images.githubusercontent.com/4585721/40455658-9ecc88b0-5eb3-11e8-8d44-7a06b71e38d7.png "Paint window")  
 Then both setup windows will become paint windows, and drawing in one will be mirrored in the others.  
 
 
