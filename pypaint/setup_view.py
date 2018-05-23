@@ -49,12 +49,12 @@ class SetupView:
         Use a geometry manager to put the widgets in the root window.
         """
         self.ip_label.grid(row = 0, column = 0)
-        self.ip_entry.grid(row = 0, column = 1)
+        self.ip_entry.grid(row = 0, column = 1, columnspan = 2)
         self.port_label.grid(row = 1, column = 0)
-        self.port_entry.grid(row = 1, column = 1)
+        self.port_entry.grid(row = 1, column = 1, columnspan = 2)
         self.host_button.grid(row = 2, column = 1)
         self.connect_button.grid(row = 2, column = 2)
-        self.offline_button.grid(row = 2, column = 3)
+        self.offline_button.grid(row = 2, column = 0)
 
     def start(self):
         """
