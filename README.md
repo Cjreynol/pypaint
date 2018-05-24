@@ -17,11 +17,14 @@ needed for "Connect", and neither is required for "Offline".
 
 ![Host setup](https://user-images.githubusercontent.com/4585721/40455655-9e9560b0-5eb3-11e8-890c-a7e8bebfb090.png "Host setup")  
 Pick a port for the host, and hit the "Host" button.  
+
 ![Waiting for connection](https://user-images.githubusercontent.com/4585721/40455656-9ea91dda-5eb3-11e8-99f2-60d55947fa18.png "Waiting for connection")  
 The GUI will visually hang with the button pressed down, but it is waiting 
 for a connection in the background.  
+
 ![Peer connection](https://user-images.githubusercontent.com/4585721/40455657-9ebd89f0-5eb3-11e8-9d9a-59d0cb5a2af6.png "Peer connection")  
 Enter the host port and their ip address then hit the "Connect" button.  
+
 ![Paint window](https://user-images.githubusercontent.com/4585721/40455658-9ecc88b0-5eb3-11e8-8d44-7a06b71e38d7.png "Paint window")  
 Then both setup windows will become paint windows, and drawing in one will be mirrored in the others.  
 
