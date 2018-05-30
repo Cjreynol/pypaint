@@ -41,7 +41,7 @@ class SetupView:
         self.ip_entry = Entry(self.root)
         self.port_label = Label(self.root, text = self.PORT_LABEL_TEXT)
         self.port_entry = Entry(self.root)
-        self.port_entry.set(str(self.DEFAULT_PORT))
+        self.port_entry.insert(0, str(self.DEFAULT_PORT))
 
         self.host_button = Button(self.root, text = self.HOST_BUTTON_TEXT)
         self.connect_button = Button(self.root, 
