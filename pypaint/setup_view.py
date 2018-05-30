@@ -8,8 +8,11 @@ class SetupView:
     """
 
     WINDOW_TITLE = "PyPaint"
+    DEFAULT_PORT = 60321
+
     IP_LABEL_TEXT = "Enter IP address:"
     PORT_LABEL_TEXT = "Enter Port:"
+
     HOST_BUTTON_TEXT = "Host"
     CONNECT_BUTTON_TEXT = "Connect"
     OFFLINE_BUTTON_TEXT = "Offline"
@@ -38,6 +41,8 @@ class SetupView:
         self.ip_entry = Entry(self.root)
         self.port_label = Label(self.root, text = self.PORT_LABEL_TEXT)
         self.port_entry = Entry(self.root)
+        self.port_entry.set(str(self.DEFAULT_PORT))
+
         self.host_button = Button(self.root, text = self.HOST_BUTTON_TEXT)
         self.connect_button = Button(self.root, 
                                         text = self.CONNECT_BUTTON_TEXT)
