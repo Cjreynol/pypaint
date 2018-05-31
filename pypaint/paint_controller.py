@@ -121,7 +121,7 @@ class PaintController:
         """
         Set the current thickness value.
         """
-        self.thickness_value = int(thickness_value)
+        self.current_thickness = int(thickness_value)
 
     def clear_callback(self):
         """
@@ -168,7 +168,7 @@ class PaintController:
         """
         """
         event_coord = event.x, event.y
-        drawing = Drawing(drawing_type, self.thickness_value, 
+        drawing = Drawing(drawing_type, self.current_thickness, 
                             self.start_pos + event_coord)
 
         if drag_drawing:
@@ -184,7 +184,7 @@ class PaintController:
     def _handle_button_release_event(self, event, drawing_type, drag_drawing):
         """
         """
-        drawing = Drawing(drawing_type, self.thickness_value, 
+        drawing = Drawing(drawing_type, self.current_thickness, 
                             self.start_pos + (event.x, event.y))
 
         if self.connection is not None:
