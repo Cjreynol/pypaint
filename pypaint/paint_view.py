@@ -100,6 +100,11 @@ class PaintView:
         """
         self.canvas.bind(event_id, callback)
 
+    def bind_window_callback(self, event_id, callback):
+        """
+        """
+        self.root.bind(event_id, callback)
+
     def bind_tool_button_callbacks(self, pen, rect, oval, line, eraser, clear):
         """
         Register the callbacks for the toolbar buttons.

@@ -12,16 +12,19 @@ class PaintController:
     If the connection does not exist(is None) then the application works solo.
     """
 
+    DEFAULT_DRAWING_MODE = DrawingType.PEN
+    DEFAULT_THICKNESS = PaintView.THICKNESS_MIN
+
+    # aliases for tkinter event types
     BUTTON_PRESS = '4'
     BUTTON_RELEASE = '5'
     MOTION = '6'
-
-    DEFAULT_DRAWING_MODE = DrawingType.PEN
-    DEFAULT_THICKNESS = PaintView.THICKNESS_MIN
+    KEYPRESS = '2'
 
     def __init__(self):
         self.start_pos = None
         self.last_drawing_id = None
+        self.cancel_drawing = False
 
         self.current_mode = self.DEFAULT_DRAWING_MODE
         self.current_thickness = self.DEFAULT_THICKNESS
@@ -34,35 +37,22 @@ class PaintController:
         Return a setup view with the necessary callbacks registered.
         """
         view = SetupView()
-        view.bind_host_button_callback(self.host_button_callback)
-        view.bind_connect_button_callback(self.connect_button_callback)
-        view.bind_offline_button_callback(self.offline_button_callback)
+        view.bind_host_button_callback(self._generate_setup_button_callback(True))
+        view.bind_connect_button_callback(self._generate_setup_button_callback(False))
+        view.bind_offline_button_callback(self._generate_setup_button_callback(None, offline = True))
         return view
 
-    def host_button_callback(self, ip_entry, port_entry):
+    def _generate_setup_button_callback(self, host, offline = False):
         """
         """
-        def f():
-            self.connection = Connection(True, int(port_entry.get()), 
-                                            ip_entry.get())
-            self._swap_views()
-        return f
-    
-    def connect_button_callback(self, ip_entry, port_entry):
-        """
-        """
-        def f():
-            self.connection = Connection(False, int(port_entry.get()), 
-                                            ip_entry.get())
-            self._swap_views()
-        return f
-
-    def offline_button_callback(self, ip_entry, port_entry):
-        """
-        """
-        def f():
-            self._swap_views()
-        return f
+        def callback(ip_entry, port_entry):
+            def f():
+                if not offline:
+                    self.connection = Connection(host, int(port_entry.get()), 
+                                                    ip_entry.get())
+                self._swap_views()
+            return f
+        return callback
 
     def _swap_views(self):
         """
@@ -79,6 +69,7 @@ class PaintController:
         view = PaintView()
         for event_type in ["<Button-1>", "<ButtonRelease-1>", "<B1-Motion>"]:
             view.bind_canvas_callback(event_type, self.handle_event)
+        view.bind_window_callback("<Key>", self.handle_event)
         view.bind_tool_button_callbacks(
                                 self.set_mode_generator(DrawingType.PEN),
                                 self.set_mode_generator(DrawingType.RECT),
@@ -129,15 +120,16 @@ class PaintController:
         """
         drawing = Drawing(DrawingType.CLEAR, 0, (0, 0, 0, 0))
         self.view.draw_shape(drawing)
-        if self.connection is not None:
-            self.connection.add_to_send_queue(drawing)
+        self._enqueue_if_connection(drawing)
 
     def handle_event(self, event):
         """
-        Call the appropriate event handler based on the current drawing mode.
         """
-        self._handle_drawing(event, self.current_mode, 
-                                self._is_draggable(self.current_mode))
+        if event.type in [self.BUTTON_PRESS, self.BUTTON_RELEASE, self.MOTION]:
+            self._handle_mouse_event(event, self.current_mode, 
+                                    self._is_draggable(self.current_mode))
+        elif event.type == self.KEYPRESS:
+            self._handle_keyboard_event(event)
 
     def _is_draggable(self, drawing_type):
         """
@@ -147,7 +139,13 @@ class PaintController:
         return drawing_type in {DrawingType.RECT, DrawingType.OVAL, 
                                     DrawingType.LINE}
 
-    def _handle_drawing(self, event, drawing_type, drag_drawing):
+    def _handle_keyboard_event(self, event):
+        """
+        """
+        if event.keysym == "Escape":
+            self.cancel_drawing = True
+
+    def _handle_mouse_event(self, event, drawing_type, drag_drawing):
         """
         Take action based on the given event.
         """
@@ -167,32 +165,43 @@ class PaintController:
     def _handle_motion_event(self, event, drawing_type, drag_drawing):
         """
         """
-        event_coord = event.x, event.y
-        drawing = Drawing(drawing_type, self.current_thickness, 
-                            self.start_pos + event_coord)
-
         if drag_drawing:
             self.view.clear_drawing_by_id(self.last_drawing_id)
-        else:
-            if self.connection is not None:
-                self.connection.add_to_send_queue(drawing)
-            self.start_pos = event_coord
 
-        drawing_id = self.view.draw_shape(drawing)
-        self.last_drawing_id = drawing_id
+        if not self.cancel_drawing:
+            event_coord = event.x, event.y
+            drawing = Drawing(drawing_type, self.current_thickness, 
+                                self.start_pos + event_coord)
+
+            if not drag_drawing:
+                self._enqueue_if_connection(drawing)
+                self.start_pos = event_coord
+            drawing_id = self.view.draw_shape(drawing)
+
+            self.last_drawing_id = drawing_id
 
     def _handle_button_release_event(self, event, drawing_type, drag_drawing):
         """
         """
-        drawing = Drawing(drawing_type, self.current_thickness, 
-                            self.start_pos + (event.x, event.y))
-
-        if self.connection is not None:
-            self.connection.add_to_send_queue(drawing)
-
         if drag_drawing:
             self.view.clear_drawing_by_id(self.last_drawing_id)
 
-        self.view.draw_shape(drawing)
+        if not self.cancel_drawing:
+            drawing = Drawing(drawing_type, self.current_thickness, 
+                                self.start_pos + (event.x, event.y))
+
+            self._enqueue_if_connection(drawing)
+            self.view.draw_shape(drawing)
+
         self.start_pos = None
         self.last_drawing_id = None
+        self.cancel_drawing = False
+
+    def _enqueue_if_connection(self, drawing):
+        """
+        """
+        sent = False
+        if self.connection is not None:
+            self.connection.add_to_send_queue(drawing)
+            sent = True
+        return sent
