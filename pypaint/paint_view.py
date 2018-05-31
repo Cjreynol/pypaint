@@ -1,5 +1,6 @@
 from tkinter import (Button, Canvas, Frame, Label, Scale, Tk, 
-                        ALL, BOTH, HORIZONTAL, LEFT, RIGHT, ROUND, RAISED)
+                        ALL, BOTH, BOTTOM, HORIZONTAL, LEFT, RIGHT, ROUND, 
+                        RAISED)
 
 from pypaint.drawing_type import DrawingType
 
@@ -61,6 +62,7 @@ class PaintView:
                                 relief = RAISED, bd = self.FRAME_BORDER_WIDTH)
         self.current_tool_label = Label(self.toolbar, 
                                             text = self.TOOL_LABEL_TEXT)
+
         self.pen_button = Button(self.toolbar, text = self.PEN_BUTTON_TEXT)
         self.rect_button = Button(self.toolbar, text = self.RECT_BUTTON_TEXT)
         self.oval_button = Button(self.toolbar, text = self.OVAL_BUTTON_TEXT)
@@ -69,6 +71,7 @@ class PaintView:
                                         text = self.ERASER_BUTTON_TEXT)
         self.clear_button = Button(self.toolbar, 
                                     text = self.CLEAR_BUTTON_TEXT)
+
         self.thickness_label = Label(self.toolbar, 
                                         text = self.THICKNESS_LABEL_TEXT)
         self.thickness_scale = Scale(self.toolbar, from_ = self.THICKNESS_MIN, 
@@ -82,10 +85,12 @@ class PaintView:
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)
         self.toolbar.pack(side = LEFT, fill = BOTH, expand = True)
         self.current_tool_label.pack()
+
         for button in [self.pen_button, self.rect_button, self.oval_button, 
-                        self.line_button, self.eraser_button, 
-                        self.clear_button]:
+                        self.line_button, self.eraser_button]:
             button.pack()
+        self.clear_button.pack(side = BOTTOM)
+        
         self.thickness_label.pack()
         self.thickness_scale.pack()
 
