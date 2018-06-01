@@ -71,11 +71,12 @@ class PaintController:
             view.bind_canvas_callback(event_type, self.handle_event)
         view.bind_window_callback("<Key>", self.handle_event)
         view.bind_tool_button_callbacks(
-                                self.set_mode_generator(DrawingType.PEN),
-                                self.set_mode_generator(DrawingType.RECT),
-                                self.set_mode_generator(DrawingType.OVAL),
-                                self.set_mode_generator(DrawingType.LINE),
-                                self.set_mode_generator(DrawingType.ERASER),
+                                self._set_mode_generator(DrawingType.PEN),
+                                self._set_mode_generator(DrawingType.RECT),
+                                self._set_mode_generator(DrawingType.OVAL),
+                                self._set_mode_generator(DrawingType.LINE),
+                                self._set_mode_generator(DrawingType.ERASER),
+                                self._set_mode_generator(DrawingType.PING),
                                 self.clear_callback)
         view.bind_thickness_scale_callback(self.thickness_callback)
         view.bind_quit_callback(self.stop)
@@ -98,7 +99,7 @@ class PaintController:
             self.connection.close()
         self.view.root.destroy()
 
-    def set_mode_generator(self, drawing_type):
+    def _set_mode_generator(self, drawing_type):
         """
         Return a function that sets the current drawing mode to the given 
         drawing type.
@@ -151,7 +152,8 @@ class PaintController:
         """
         if event.type == self.BUTTON_PRESS:
             self._handle_button_press_event(event, drawing_type, drag_drawing)
-        elif event.type == self.MOTION:
+        elif (event.type == self.MOTION 
+                and self.current_mode != DrawingType.PING):
             self._handle_motion_event(event, drawing_type, drag_drawing)
         elif event.type == self.BUTTON_RELEASE:
             self._handle_button_release_event(event, drawing_type, drag_drawing)

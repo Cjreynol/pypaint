@@ -1,7 +1,7 @@
 # PyPaint
 
-An application that enables collaborative drawing over a network.  It only 
-supports a peer-to-peer connection between two clients.
+An application that enables collaborative drawing between two peers over a 
+network.
 
 ## To Run 
 
@@ -23,15 +23,15 @@ The GUI will visually hang with the button pressed down, but it is waiting
 for a connection in the background.  
 
 ![Peer connection](https://user-images.githubusercontent.com/4585721/40455657-9ebd89f0-5eb3-11e8-9d9a-59d0cb5a2af6.png "Peer connection")  
-Enter the host port and their ip address then hit the "Connect" button.  
+Enter the host port and ip address in the other client then hit the "Connect" button.  
 
 ![Paint window](https://user-images.githubusercontent.com/4585721/40455658-9ecc88b0-5eb3-11e8-8d44-7a06b71e38d7.png "Paint window")  
-Then both setup windows will become paint windows, and drawing in one will be mirrored in the others.  
+Both setup windows will become paint windows, and drawings in one client will show in the other.
 
 
 ### Known Bug
 
 On Windows, Tkinter has a bug in its circle drawing that leaves artifacts on 
 the canvas when the mouse motion event is moving left.  This persists even 
-when the canvas is cleared but does clear when dragging another shape over 
-the area.
+when the canvas is cleared, but dragging over it(like with an oval or rect) 
+does remove them from the canvas.

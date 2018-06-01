@@ -1,3 +1,4 @@
+from time import sleep
 from tkinter import (Button, Canvas, Frame, Label, Scale, Tk, 
                         ALL, BOTH, BOTTOM, HORIZONTAL, LEFT, RIGHT, ROUND, 
                         RAISED)
@@ -31,9 +32,12 @@ class PaintView:
     OVAL_BUTTON_TEXT = "Oval"
     LINE_BUTTON_TEXT = "Line"
     ERASER_BUTTON_TEXT = "Eraser"
+    PING_BUTTON_TEXT = "Ping"
     CLEAR_BUTTON_TEXT = "Clear"
 
-    LINE_WIDTH = 5
+    PING_DELAY = 0.1
+    NUM_PINGS = 3
+    PING_RADIUS_FACTOR = 10
 
     def __init__(self):
         """
@@ -69,6 +73,7 @@ class PaintView:
         self.line_button = Button(self.toolbar, text = self.LINE_BUTTON_TEXT)
         self.eraser_button = Button(self.toolbar, 
                                         text = self.ERASER_BUTTON_TEXT)
+        self.ping_button = Button(self.toolbar, text = self.PING_BUTTON_TEXT)
         self.clear_button = Button(self.toolbar, 
                                     text = self.CLEAR_BUTTON_TEXT)
 
@@ -87,7 +92,8 @@ class PaintView:
         self.current_tool_label.pack()
 
         for button in [self.pen_button, self.rect_button, self.oval_button, 
-                        self.line_button, self.eraser_button]:
+                        self.line_button, self.eraser_button, 
+                        self.ping_button]:
             button.pack()
         self.clear_button.pack(side = BOTTOM)
         
@@ -105,16 +111,18 @@ class PaintView:
         """
         self.root.bind(event_id, callback)
 
-    def bind_tool_button_callbacks(self, pen, rect, oval, line, eraser, clear):
+    def bind_tool_button_callbacks(self, pen, rect, oval, line, eraser, ping,
+                                    clear):
         """
         Register the callbacks for the toolbar buttons.
         """
         self.pen_button["command"] = pen
         self.rect_button["command"] = rect
-        self.oval_button["command"]= oval
+        self.oval_button["command"] = oval
         self.line_button["command"] = line
-        self.eraser_button["command"]= eraser
-        self.clear_button["command"]= clear
+        self.eraser_button["command"] = eraser
+        self.ping_button["command"] = ping
+        self.clear_button["command"] = clear
 
     def bind_thickness_scale_callback(self, callback):
         """
@@ -144,6 +152,7 @@ class PaintView:
                     DrawingType.OVAL : self._draw_oval,
                     DrawingType.LINE : self._draw_line,
                     DrawingType.ERASER : self._draw_eraser_line,
+                    DrawingType.PING : self._draw_ping,
                     DrawingType.CLEAR : self._clear_canvas}
         draw_func = lookup[drawing.shape]
         return draw_func(drawing.coords, drawing.thickness)
@@ -182,6 +191,19 @@ class PaintView:
         The *args is to match the signature of the other drawing functions.
         """
         self.canvas.delete(ALL)
+
+    def _draw_ping(self, coords, thickness):
+        """
+        """
+        x, y = coords[0], coords[1]
+        for i in range(1, self.NUM_PINGS + 1):
+            r = i * self.PING_RADIUS_FACTOR
+            circle_coords = [x - r, y - r, x + r, y + r]
+            circle_id = self.canvas.create_oval(circle_coords, 
+                width = thickness)
+            self.root.update()  # force the canvas to visually update
+            sleep(self.PING_DELAY)
+            self.clear_drawing_by_id(circle_id)
 
     def clear_drawing_by_id(self, drawing_id):
         """

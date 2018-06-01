@@ -13,10 +13,10 @@ class Drawing:
     """
 
     HEADER_VERSION = 1
-    HEADER_PACK_STR = "II"
+    HEADER_PACK_STR = "II"      # version and length
     HEADER_SIZE = calcsize(HEADER_PACK_STR)
 
-    MSG_PACK_STR = "diI4i"
+    MSG_PACK_STR = "diI4i"      # timestamp, shape, thickness, 4 coord values
     MSG_SIZE = calcsize(MSG_PACK_STR)
 
     def __init__(self, shape, thickness, coords, timestamp = None):
@@ -73,7 +73,6 @@ class Drawing:
         """
         Return a Drawing instance using the data from the byte array.
         """
-        drawing = None
         if len(byte_array) == Drawing.MSG_SIZE:
             try:
                 timestamp, shape_val, thickness, *coords= unpack(
@@ -83,6 +82,7 @@ class Drawing:
                                 coords, timestamp)
             except (ValueError, error) as err:  # struct.error
                 print("Error in decoding: {}".format(err))
+                drawing = None
         return drawing
 
     @staticmethod
@@ -90,11 +90,11 @@ class Drawing:
         """
         Return the version number and message length from the byte_array.
         """
-        header = None
         try:
             header =  unpack(Drawing.HEADER_PACK_STR, byte_array)
         except error as err:    # struct.error
             print("Error in decoding header: {}".format(err))
+            header = None
         
         return header
 
