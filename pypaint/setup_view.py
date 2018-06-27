@@ -83,4 +83,4 @@ class SetupView:
         """
         Register the callback for starting a non-connected pypaint instance.
         """
-        self.offline_button["command"] = callback(self.ip_entry, self.port_entry)
+        self.offline_button["command"] = callback

@@ -12,10 +12,6 @@ class Drawing:
     sending/receiving over a network.
     """
 
-    HEADER_VERSION = 1
-    HEADER_PACK_STR = "II"      # version and length
-    HEADER_SIZE = calcsize(HEADER_PACK_STR)
-
     MSG_PACK_STR = "diI4i"      # timestamp, shape, thickness, 4 coord values
     MSG_SIZE = calcsize(MSG_PACK_STR)
 
@@ -40,21 +36,6 @@ class Drawing:
             bytes_msg = b''
 
         return bytes_msg
-        
-    @staticmethod
-    def create_header(msg_body):
-        """
-        Return a byte array representing a header for the given message body.
-        """
-        non_header_length = len(msg_body)
-        try:
-            bytes_header = pack(Drawing.HEADER_PACK_STR, 
-                                    Drawing.HEADER_VERSION, non_header_length)
-        except error as err:    # struct.error
-            print("Error in creating header: {}".format(err))
-            bytes_header = b''
-
-        return bytes_header
 
     @staticmethod
     def decode_drawings(byte_array):
@@ -84,19 +65,6 @@ class Drawing:
                 print("Error in decoding: {}".format(err))
                 drawing = None
         return drawing
-
-    @staticmethod
-    def decode_header(byte_array):
-        """
-        Return the version number and message length from the byte_array.
-        """
-        try:
-            header =  unpack(Drawing.HEADER_PACK_STR, byte_array)
-        except error as err:    # struct.error
-            print("Error in decoding header: {}".format(err))
-            header = None
-        
-        return header
 
     def __lt__(self, other):
         return self.timestamp < other.timestamp

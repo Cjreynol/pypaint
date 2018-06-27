@@ -5,11 +5,9 @@ from pypaint.paint_view import PaintView
 from pypaint.setup_view import SetupView
 
 
-class PaintController:
+class Controller:
     """
     Manages the View, interface event handling, and the network connection.
-
-    If the connection does not exist(is None) then the application works solo.
     """
 
     DEFAULT_DRAWING_MODE = DrawingType.PEN
@@ -29,7 +27,7 @@ class PaintController:
         self.current_mode = self.DEFAULT_DRAWING_MODE
         self.current_thickness = self.DEFAULT_THICKNESS
 
-        self.connection = None
+        self.connection = Connection()
         self.view = self._create_setup_view()
             
     def _create_setup_view(self):
@@ -39,20 +37,19 @@ class PaintController:
         view = SetupView()
         view.bind_host_button_callback(self._generate_setup_button_callback(True))
         view.bind_connect_button_callback(self._generate_setup_button_callback(False))
-        view.bind_offline_button_callback(self._generate_setup_button_callback(None, offline = True))
+        view.bind_offline_button_callback(self._swap_views)
         return view
 
-    def _generate_setup_button_callback(self, host, offline = False):
+    def _generate_setup_button_callback(self, host):
         """
         """
-        def callback(ip_entry, port_entry):
+        def callback_gen(ip_entry, port_entry):
             def f():
-                if not offline:
-                    self.connection = Connection(host, int(port_entry.get()), 
-                                                    ip_entry.get())
+                self.connection.startup(int(port_entry.get()),
+                                        ip_entry.get() if not host else None)
                 self._swap_views()
             return f
-        return callback
+        return callback_gen
 
     def _swap_views(self):
         """
@@ -60,7 +57,7 @@ class PaintController:
         """
         self.view.root.destroy()
         self.view = self._create_paint_view()
-        self.start()
+        self.start_paint_view()
 
     def _create_paint_view(self):
         """
@@ -85,18 +82,28 @@ class PaintController:
 
     def start(self):
         """
+        """
+        self.view.start()
+
+    def start_paint_view(self):
+        """
         Start the controllers components.
         """
-        if self.connection is not None:
-            self.connection.start(self.view.draw_shape)
+        self.connection.start(self._decode_and_draw)
         self.view.start()
+
+    def _decode_and_draw(self, drawing_data):
+        """
+        Decode the drawing(s) and pass them to the view to be displayed.
+        """
+        for drawing in Drawing.decode_drawings(drawing_data):
+            self.view.draw_shape(drawing)
 
     def stop(self):
         """
         Shut down the connection and close the view.
         """
-        if self.connection is not None:
-            self.connection.close()
+        self.connection.close()
         self.view.root.destroy()
 
     def _set_mode_generator(self, drawing_type):
@@ -121,7 +128,7 @@ class PaintController:
         """
         drawing = Drawing(DrawingType.CLEAR, 0, (0, 0, 0, 0))
         self.view.draw_shape(drawing)
-        self._enqueue_if_connection(drawing)
+        self._encode_and_enqueue(drawing)
 
     def handle_event(self, event):
         """
@@ -176,7 +183,7 @@ class PaintController:
                                 self.start_pos + event_coord)
 
             if not drag_drawing:
-                self._enqueue_if_connection(drawing)
+                self._encode_and_enqueue(drawing)
                 self.start_pos = event_coord
             drawing_id = self.view.draw_shape(drawing)
 
@@ -192,18 +199,16 @@ class PaintController:
             drawing = Drawing(drawing_type, self.current_thickness, 
                                 self.start_pos + (event.x, event.y))
 
-            self._enqueue_if_connection(drawing)
+            self._encode_and_enqueue(drawing)
             self.view.draw_shape(drawing)
 
         self.start_pos = None
         self.last_drawing_id = None
         self.cancel_drawing = False
 
-    def _enqueue_if_connection(self, drawing):
+    def _encode_and_enqueue(self, drawing):
         """
+        Encode the drawing as bytes and put it in the send queue.
         """
-        sent = False
-        if self.connection is not None:
-            self.connection.add_to_send_queue(drawing)
-            sent = True
-        return sent
+        data = drawing.encode()
+        self.connection.add_to_send_queue(data)
