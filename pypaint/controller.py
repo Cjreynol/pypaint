@@ -45,8 +45,10 @@ class Controller:
         """
         def callback_gen(ip_entry, port_entry):
             def f():
-                self.connection.startup(int(port_entry.get()),
-                                        ip_entry.get() if not host else None)
+                ip = None
+                if not host:
+                    ip = ip_entry.get()
+                self.connection.startup(int(port_entry.get()), ip)
                 self._swap_views()
             return f
         return callback_gen

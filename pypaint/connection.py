@@ -18,14 +18,14 @@ class Connection:
     HEADER_SIZE = calcsize(HEADER_PACK_STR)
 
     CONNECT_ATTEMPTS = 3
-    SELECT_TIMEOUT_INTERVAL = 0.5
+    SELECT_TIMEOUT_INTERVAL = 0.3
 
     def __init__(self):
         self.socket = None
         self.socket_lock = None
         self.send_queue = None
 
-    def startup(self, port, ip_address = None):
+    def startup(self, port, ip_address = None, callback = None):
         """
         Start a thread to either accept a connection or attempt to connect to 
         a peer.
@@ -38,7 +38,11 @@ class Connection:
 
             t = Thread(target = thread_target, args = (port, ip_address))
             t.start()
-            t.join()
+
+            if callback is None:
+                t.join()
+            else:
+                callback()
 
     def _wait_for_connection(self, port, *args):
         """
@@ -121,6 +125,7 @@ class Connection:
             # help blocking send thread close
             self.send_queue.put(None)
             self.send_queue = None
+            getLogger(__name__).info("Connection closed.")
 
     def add_to_send_queue(self, data):
         """
