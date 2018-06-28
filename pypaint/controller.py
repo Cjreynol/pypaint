@@ -233,7 +233,7 @@ class Controller:
                                                 thickness, coords):
         """
         """
-        def f():
+        def f(event):   # event is passed when using a keybinding to activate
             drawing = Drawing(DrawingType.TEXT, thickness, coords, 
                                 text_entry.get()[:self.TEXT_SIZE_LIMIT])
             self._enqueue(drawing)

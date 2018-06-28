@@ -1,7 +1,7 @@
 from time import sleep
 from tkinter import (Button, Canvas, Frame, Label, Scale, Tk, 
                         ALL, BOTH, BOTTOM, HORIZONTAL, LEFT, RIGHT, ROUND, 
-                        RAISED)
+                        RAISED, W)
 
 from pypaint.drawing_type import DrawingType
 
@@ -213,7 +213,7 @@ class PaintView:
         x, y = coords[0], coords[1]
         font_size = self.FONT_BASE_SIZE + (thickness - 1) * 2 # 8 to 26
         self.canvas.create_text(x, y, font = "Arial {}".format(font_size),
-                                    text = drawing_text)
+                                    anchor = W, text = drawing_text)
 
     def clear_drawing_by_id(self, drawing_id):
         """
