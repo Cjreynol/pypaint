@@ -27,17 +27,10 @@ class PaintView:
 
     ERASER_COLOR = CANVAS_BACKGROUND_COLOR
 
-    PEN_BUTTON_TEXT = "Pen"
-    RECT_BUTTON_TEXT = "Rectangle"
-    OVAL_BUTTON_TEXT = "Oval"
-    LINE_BUTTON_TEXT = "Line"
-    ERASER_BUTTON_TEXT = "Eraser"
-    PING_BUTTON_TEXT = "Ping"
-    CLEAR_BUTTON_TEXT = "Clear"
-
     PING_DELAY = 0.1
     NUM_PINGS = 3
     PING_RADIUS_FACTOR = 10
+    FONT_BASE_SIZE = 10
 
     def __init__(self):
         """
@@ -67,15 +60,16 @@ class PaintView:
         self.current_tool_label = Label(self.toolbar, 
                                             text = self.TOOL_LABEL_TEXT)
 
-        self.pen_button = Button(self.toolbar, text = self.PEN_BUTTON_TEXT)
-        self.rect_button = Button(self.toolbar, text = self.RECT_BUTTON_TEXT)
-        self.oval_button = Button(self.toolbar, text = self.OVAL_BUTTON_TEXT)
-        self.line_button = Button(self.toolbar, text = self.LINE_BUTTON_TEXT)
+        self.pen_button = Button(self.toolbar, text = str(DrawingType.PEN))
+        self.rect_button = Button(self.toolbar, text = str(DrawingType.RECT))
+        self.oval_button = Button(self.toolbar, text = str(DrawingType.OVAL))
+        self.line_button = Button(self.toolbar, text = str(DrawingType.LINE))
         self.eraser_button = Button(self.toolbar, 
-                                        text = self.ERASER_BUTTON_TEXT)
-        self.ping_button = Button(self.toolbar, text = self.PING_BUTTON_TEXT)
+                                        text = str(DrawingType.ERASER))
+        self.text_button = Button(self.toolbar, text = str(DrawingType.TEXT))
+        self.ping_button = Button(self.toolbar, text = str(DrawingType.PING))
         self.clear_button = Button(self.toolbar, 
-                                    text = self.CLEAR_BUTTON_TEXT)
+                                    text = str(DrawingType.CLEAR))
 
         self.thickness_label = Label(self.toolbar, 
                                         text = self.THICKNESS_LABEL_TEXT)
@@ -93,7 +87,7 @@ class PaintView:
 
         for button in [self.pen_button, self.rect_button, self.oval_button, 
                         self.line_button, self.eraser_button, 
-                        self.ping_button]:
+                        self.text_button, self.ping_button]:
             button.pack()
         self.clear_button.pack(side = BOTTOM)
         
@@ -111,8 +105,8 @@ class PaintView:
         """
         self.root.bind(event_id, callback)
 
-    def bind_tool_button_callbacks(self, pen, rect, oval, line, eraser, ping,
-                                    clear):
+    def bind_tool_button_callbacks(self, pen, rect, oval, line, eraser, text,
+                                    ping, clear):
         """
         Register the callbacks for the toolbar buttons.
         """
@@ -121,6 +115,7 @@ class PaintView:
         self.oval_button["command"] = oval
         self.line_button["command"] = line
         self.eraser_button["command"] = eraser
+        self.text_button["command"] = text
         self.ping_button["command"] = ping
         self.clear_button["command"] = clear
 
@@ -153,9 +148,16 @@ class PaintView:
                     DrawingType.LINE : self._draw_line,
                     DrawingType.ERASER : self._draw_eraser_line,
                     DrawingType.PING : self._draw_ping,
-                    DrawingType.CLEAR : self._clear_canvas}
+                    DrawingType.CLEAR : self._clear_canvas,
+                    DrawingType.TEXT : self._draw_text}
         draw_func = lookup[drawing.shape]
-        return draw_func(drawing.coords, drawing.thickness)
+        if drawing.shape == DrawingType.CLEAR:
+            args = []
+        elif drawing.shape == DrawingType.TEXT:
+            args = [drawing.coords, drawing.thickness, drawing.text]
+        else:
+            args = [drawing.coords, drawing.thickness]
+        return draw_func(*args)
 
     def _draw_rect(self, coords, thickness):
         """
@@ -184,16 +186,15 @@ class PaintView:
                                         capstyle = ROUND, 
                                         fill = self.ERASER_COLOR)
 
-    def _clear_canvas(self, *args):
+    def _clear_canvas(self):
         """
         Clear the canvas of all drawings.
-
-        The *args is to match the signature of the other drawing functions.
         """
         self.canvas.delete(ALL)
 
     def _draw_ping(self, coords, thickness):
         """
+        Draw increasingly large circles around the center point.
         """
         x, y = coords[0], coords[1]
         for i in range(1, self.NUM_PINGS + 1):
@@ -204,6 +205,15 @@ class PaintView:
             self.root.update()  # force the canvas to visually update
             sleep(self.PING_DELAY)
             self.clear_drawing_by_id(circle_id)
+
+    def _draw_text(self, coords, thickness, drawing_text):
+        """
+        Render text at the first point.
+        """
+        x, y = coords[0], coords[1]
+        font_size = self.FONT_BASE_SIZE + (thickness - 1) * 2 # 8 to 26
+        self.canvas.create_text(x, y, font = "Arial {}".format(font_size),
+                                    text = drawing_text)
 
     def clear_drawing_by_id(self, drawing_id):
         """

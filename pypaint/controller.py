@@ -1,8 +1,9 @@
-from pypaint.connection import Connection
-from pypaint.drawing import Drawing
-from pypaint.drawing_type import DrawingType
-from pypaint.paint_view import PaintView
-from pypaint.setup_view import SetupView
+from pypaint.connection         import Connection
+from pypaint.drawing            import Drawing
+from pypaint.drawing_type       import DrawingType
+from pypaint.paint_view         import PaintView
+from pypaint.setup_view         import SetupView
+from pypaint.text_entry_box     import TextEntryBox
 
 
 class Controller:
@@ -12,6 +13,8 @@ class Controller:
 
     DEFAULT_DRAWING_MODE = DrawingType.PEN
     DEFAULT_THICKNESS = PaintView.THICKNESS_MIN
+
+    TEXT_SIZE_LIMIT = 128
 
     # aliases for tkinter event types
     BUTTON_PRESS = '4'
@@ -75,6 +78,7 @@ class Controller:
                                 self._set_mode_generator(DrawingType.OVAL),
                                 self._set_mode_generator(DrawingType.LINE),
                                 self._set_mode_generator(DrawingType.ERASER),
+                                self._set_mode_generator(DrawingType.TEXT),
                                 self._set_mode_generator(DrawingType.PING),
                                 self.clear_callback)
         view.bind_thickness_scale_callback(self.thickness_callback)
@@ -118,6 +122,12 @@ class Controller:
             self.view.update_tool_text(str(drawing_type))
         return f
 
+    def _enqueue(self, drawing):
+        """
+        Encode the drawing as bytes and put it in the send queue.
+        """
+        self.connection.add_to_send_queue(drawing.encode())
+
     def thickness_callback(self, thickness_value):
         """
         Set the current thickness value.
@@ -130,7 +140,7 @@ class Controller:
         """
         drawing = Drawing(DrawingType.CLEAR, 0, (0, 0, 0, 0))
         self.view.draw_shape(drawing)
-        self._encode_and_enqueue(drawing)
+        self._enqueue(drawing)
 
     def handle_event(self, event):
         """
@@ -162,7 +172,8 @@ class Controller:
         if event.type == self.BUTTON_PRESS:
             self._handle_button_press_event(event, drawing_type, drag_drawing)
         elif (event.type == self.MOTION 
-                and self.current_mode != DrawingType.PING):
+                and self.current_mode not in 
+                    [DrawingType.PING, DrawingType.TEXT]):
             self._handle_motion_event(event, drawing_type, drag_drawing)
         elif event.type == self.BUTTON_RELEASE:
             self._handle_button_release_event(event, drawing_type, drag_drawing)
@@ -185,7 +196,7 @@ class Controller:
                                 self.start_pos + event_coord)
 
             if not drag_drawing:
-                self._encode_and_enqueue(drawing)
+                self._enqueue(drawing)
                 self.start_pos = event_coord
             drawing_id = self.view.draw_shape(drawing)
 
@@ -198,19 +209,41 @@ class Controller:
             self.view.clear_drawing_by_id(self.last_drawing_id)
 
         if not self.cancel_drawing:
-            drawing = Drawing(drawing_type, self.current_thickness, 
-                                self.start_pos + (event.x, event.y))
-
-            self._encode_and_enqueue(drawing)
-            self.view.draw_shape(drawing)
+            if drawing_type != DrawingType.TEXT:
+                drawing = Drawing(drawing_type, self.current_thickness, 
+                                    self.start_pos + (event.x, event.y))
+                self._enqueue(drawing)
+                self.view.draw_shape(drawing)
+            else:
+                self._create_text_entry_box(self.current_thickness, 
+                                        self.start_pos + (event.x, event.y))
 
         self.start_pos = None
         self.last_drawing_id = None
         self.cancel_drawing = False
 
-    def _encode_and_enqueue(self, drawing):
+    def _create_text_entry_box(self, thickness, coords):
         """
-        Encode the drawing as bytes and put it in the send queue.
         """
-        data = drawing.encode()
-        self.connection.add_to_send_queue(data)
+        TextEntryBox(self._text_box_confirm_callback_generator,
+                        self._text_box_cancel_callback_generator, 
+                        thickness, coords)
+
+    def _text_box_confirm_callback_generator(self, window, text_entry, 
+                                                thickness, coords):
+        """
+        """
+        def f():
+            drawing = Drawing(DrawingType.TEXT, thickness, coords, 
+                                text_entry.get()[:self.TEXT_SIZE_LIMIT])
+            self._enqueue(drawing)
+            self.view.draw_shape(drawing)
+            window.destroy()
+        return f
+
+    def _text_box_cancel_callback_generator(self, window):
+        """
+        """
+        def f():
+            window.destroy()
+        return f

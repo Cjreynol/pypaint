@@ -10,10 +10,7 @@ class DrawingType(Enum):
     ERASER = 5
     CLEAR = 6
     PING = 7
+    TEXT = 8
 
     def __str__(self):
-        lookup = {self.PEN : "Pen", self.RECT : "Rectangle", 
-                    self.OVAL : "Oval", self.LINE : "Line", 
-                    self.ERASER : "Eraser", self.CLEAR : "Clear",
-                    self.PING : "Ping"}
-        return lookup[self]
+        return self.name.capitalize()

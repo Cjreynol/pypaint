@@ -1,7 +1,7 @@
 from logging    import getLogger
 from queue      import Queue
 from selectors  import DefaultSelector, EVENT_READ
-from socket     import socket, timeout, SO_REUSEADDR, SOL_SOCKET
+from socket     import socket, SO_REUSEADDR, SOL_SOCKET
 from struct     import calcsize, pack, unpack
 from threading  import Lock, Thread
 from time       import sleep
@@ -178,13 +178,14 @@ class Connection:
 
         while self.socket is not None:
             try:
-                _ = selector.select(self.SELECT_TIMEOUT_INTERVAL)
-                header = self.socket.recv(self.HEADER_SIZE)
-                if header:
-                    data = self._read_data(header)
-                    callback(data)
-                else:   # connection closed from other end
-                    self.close()
+                val = selector.select(self.SELECT_TIMEOUT_INTERVAL)
+                if val:
+                    header = self.socket.recv(self.HEADER_SIZE)
+                    if header:
+                        data = self._read_data(header)
+                        callback(data)
+                    else:           # connection closed from other end
+                        self.close()
             except Exception as err:
                 getLogger(__name__).debug(("Unexpected exception occurred,"
                                             " receive thread may be in a"
@@ -195,7 +196,6 @@ class Connection:
         """
         Use the header to read the body of the message from the socket.
         """
-        # TODO: Handle version number in potential later versions
         _, msg_size = unpack(self.HEADER_PACK_STR, header)
         data = self.socket.recv(msg_size)
         return data
