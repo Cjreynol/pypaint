@@ -3,7 +3,7 @@ from logging import Formatter, StreamHandler, DEBUG, INFO, getLogger
 from pypaint.controller import Controller
 
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 LOG_FORMAT = "%(asctime)s::%(name)s::%(levelname)s::%(message)s"
 TIMESTAMP_FORMAT = "%H:%M:%S"

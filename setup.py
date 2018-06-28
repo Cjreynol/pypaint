@@ -9,7 +9,7 @@ with open("README.md") as f:
 setup(  
     name = "pypaint",
     version = __version__,
-    description = "A simple drawing tool that allows collaboration over a network",
+    description = "A simple drawing tool that allows remote collaboration",
     long_description = long_description,
     long_description_content_type='text/markdown',
     author = "Chad Reynolds",
