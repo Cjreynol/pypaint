@@ -180,7 +180,8 @@ class Connection:
             try:
                 val = selector.select(self.SELECT_TIMEOUT_INTERVAL)
                 if val:
-                    header = self.socket.recv(self.HEADER_SIZE)
+                    with self.socket_lock:
+                        header = self.socket.recv(self.HEADER_SIZE)
                     if header:
                         data = self._read_data(header)
                         callback(data)
@@ -197,5 +198,6 @@ class Connection:
         Use the header to read the body of the message from the socket.
         """
         _, msg_size = unpack(self.HEADER_PACK_STR, header)
-        data = self.socket.recv(msg_size)
+        with self.socket_lock:
+            data = self.socket.recv(msg_size)
         return data
