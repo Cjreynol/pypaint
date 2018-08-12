@@ -211,7 +211,7 @@ class PaintView:
         Render text at the first point.
         """
         x, y = coords[0], coords[1]
-        font_size = self.FONT_BASE_SIZE + (thickness - 1) * 2 # 8 to 26
+        font_size = self.FONT_BASE_SIZE + (thickness - 1) * 2
         self.canvas.create_text(x, y, font = "Arial {}".format(font_size),
                                     anchor = W, text = drawing_text)
 

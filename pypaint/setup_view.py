@@ -8,7 +8,7 @@ class SetupView:
     """
 
     WINDOW_TITLE = "PyPaint"
-    DEFAULT_PORT = 61312
+    DEFAULT_PORT = 2423
 
     IP_LABEL_TEXT = "Enter IP address:"
     PORT_LABEL_TEXT = "Enter Port:"
