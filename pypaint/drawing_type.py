@@ -1,16 +1,16 @@
-from enum import Enum
+from enum import Enum, auto
 
 
 class DrawingType(Enum):
     
-    PEN = 1
-    RECT = 2
-    OVAL = 3
-    LINE = 4
-    ERASER = 5
-    CLEAR = 6
-    PING = 7
-    TEXT = 8
+    PEN = auto()
+    RECT = auto()
+    OVAL = auto()
+    LINE = auto()
+    ERASER = auto()
+    CLEAR = auto()
+    PING = auto()
+    TEXT = auto()
 
     def __str__(self):
         return self.name.capitalize()

@@ -3,15 +3,11 @@ from tkinter import (Button, Canvas, Frame, Label, Scale, Tk,
                         ALL, BOTH, BOTTOM, HORIZONTAL, LEFT, RIGHT, ROUND, 
                         RAISED, W)
 
-from pypaint.drawing_type import DrawingType
+from .drawing_type  import DrawingType
+from .view          import View
 
 
-class PaintView:
-    """
-    Manages the Tkinter window for a PyPaint instance.
-    """
-
-    WINDOW_TITLE = "PyPaint"
+class PaintView(View):
 
     FRAME_BORDER_WIDTH = 2
     FRAME_WIDTH = 120
@@ -32,110 +28,48 @@ class PaintView:
     PING_RADIUS_FACTOR = 10
     FONT_BASE_SIZE = 10
 
-    def __init__(self):
-        """
-        Create the Tkinter window, then create and place the widgets in it.
-        """
-        self.root = self._create_root()
-        self._initialize_widgets()
-        self._place_widgets()
-
-    def _create_root(self):
-        """
-        Return the root window with the proper attributes set.
-        """
-        root = Tk()
-        root.title(self.WINDOW_TITLE)
-        return root
-
-    def _initialize_widgets(self):
-        """
-        Instantiate the widgets for the GUI.
-        """
-        self.canvas = Canvas(self.root, width = self.CANVAS_WIDTH, 
+    def _create_widgets(self):
+        self.canvas = Canvas(self, width = self.CANVAS_WIDTH, 
                                 height = self.CANVAS_HEIGHT, 
                                 background = self.CANVAS_BACKGROUND_COLOR)
-        self.toolbar = Frame(self.root, width = self.FRAME_WIDTH, 
-                                relief = RAISED, bd = self.FRAME_BORDER_WIDTH)
+            
+        self.toolbar = Frame(self, width = self.FRAME_WIDTH, relief = RAISED, 
+                                bd = self.FRAME_BORDER_WIDTH)
         self.current_tool_label = Label(self.toolbar, 
-                                            text = self.TOOL_LABEL_TEXT)
+                                    text = (self.TOOL_LABEL_TEXT 
+                                        + str(self.controller.current_mode)))
 
-        self.pen_button = Button(self.toolbar, text = str(DrawingType.PEN))
-        self.rect_button = Button(self.toolbar, text = str(DrawingType.RECT))
-        self.oval_button = Button(self.toolbar, text = str(DrawingType.OVAL))
-        self.line_button = Button(self.toolbar, text = str(DrawingType.LINE))
-        self.eraser_button = Button(self.toolbar, 
-                                        text = str(DrawingType.ERASER))
-        self.text_button = Button(self.toolbar, text = str(DrawingType.TEXT))
-        self.ping_button = Button(self.toolbar, text = str(DrawingType.PING))
-        self.clear_button = Button(self.toolbar, 
-                                    text = str(DrawingType.CLEAR))
+        self.buttons = []
+        for tool in DrawingType:
+            if tool != DrawingType.CLEAR:   # clear button has a special action
+                button = Button(self.toolbar, text = str(tool), 
+                    command = self.controller.set_mode_generator(tool))
+                self.buttons.append(button)
 
+        self.clear_button = Button(self.toolbar, text = str(DrawingType.CLEAR))
         self.thickness_label = Label(self.toolbar, 
                                         text = self.THICKNESS_LABEL_TEXT)
         self.thickness_scale = Scale(self.toolbar, from_ = self.THICKNESS_MIN, 
-                                        to = self.THICKNESS_MAX, 
-                                        orient = HORIZONTAL)
+                                to = self.THICKNESS_MAX, orient = HORIZONTAL)
 
-    def _place_widgets(self):
-        """
-        Use a geometry manager to put the widgets in the root window.
-        """
+    def _arrange_widgets(self):
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)
         self.toolbar.pack(side = LEFT, fill = BOTH, expand = True)
         self.current_tool_label.pack()
 
-        for button in [self.pen_button, self.rect_button, self.oval_button, 
-                        self.line_button, self.eraser_button, 
-                        self.text_button, self.ping_button]:
+        for button in self.buttons:
             button.pack()
         self.clear_button.pack(side = BOTTOM)
         
         self.thickness_label.pack()
         self.thickness_scale.pack()
 
-    def bind_canvas_callback(self, event_id, callback):
-        """
-        Register the callback for the given event.
-        """
-        self.canvas.bind(event_id, callback)
-
-    def bind_window_callback(self, event_id, callback):
-        """
-        """
-        self.root.bind(event_id, callback)
-
-    def bind_tool_button_callbacks(self, pen, rect, oval, line, eraser, text,
-                                    ping, clear):
-        """
-        Register the callbacks for the toolbar buttons.
-        """
-        self.pen_button["command"] = pen
-        self.rect_button["command"] = rect
-        self.oval_button["command"] = oval
-        self.line_button["command"] = line
-        self.eraser_button["command"] = eraser
-        self.text_button["command"] = text
-        self.ping_button["command"] = ping
-        self.clear_button["command"] = clear
-
-    def bind_thickness_scale_callback(self, callback):
-        """
-        Register the callback for the thickness scale.
-        """
-        self.thickness_scale["command"] = callback
-
-    def bind_quit_callback(self, callback):
-        """
-        Set the callback for when the window closes.
-        """
-        self.root.protocol("WM_DELETE_WINDOW", callback)
-
-    def start(self):
-        """
-        Start the GUI's update loop.
-        """
-        self.root.mainloop()
+    def _bind_actions(self):
+        for event_type in ["<Button-1>", "<ButtonRelease-1>", "<B1-Motion>"]:
+            self.canvas.bind(event_type, self.controller.handle_event)
+        
+        self.clear_button["command"] = self.controller.clear_callback
+        self.thickness_scale["command"] = self.controller.thickness_callback
 
     def draw_shape(self, drawing):
         """
@@ -202,7 +136,7 @@ class PaintView:
             circle_coords = [x - r, y - r, x + r, y + r]
             circle_id = self.canvas.create_oval(circle_coords, 
                 width = thickness)
-            self.root.update()  # force the canvas to visually update
+            self.controller.update()  # force the canvas to visually update
             sleep(self.PING_DELAY)
             self.clear_drawing_by_id(circle_id)
 

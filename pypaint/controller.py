@@ -1,9 +1,10 @@
-from .connection         import Connection
-from .drawing            import Drawing
-from .drawing_type       import DrawingType
-from .paint_view         import PaintView
-from .setup_view         import SetupView
-from .text_entry_box     import TextEntryBox
+from .connection        import Connection
+from .drawing           import Drawing
+from .drawing_type      import DrawingType
+from .main_window       import MainWindow
+from .paint_view        import PaintView
+from .setup_view        import SetupView
+from .text_entry_box    import TextEntryBox
 
 
 class Controller:
@@ -31,19 +32,9 @@ class Controller:
         self.current_thickness = self.DEFAULT_THICKNESS
 
         self.connection = Connection()
-        self.view = self._create_setup_view()
+        self.window = MainWindow(self, SetupView)
             
-    def _create_setup_view(self):
-        """
-        Return a setup view with the necessary callbacks registered.
-        """
-        view = SetupView()
-        view.bind_host_button_callback(self._generate_setup_button_callback(True))
-        view.bind_connect_button_callback(self._generate_setup_button_callback(False))
-        view.bind_offline_button_callback(self._swap_views)
-        return view
-
-    def _generate_setup_button_callback(self, host):
+    def generate_setup_button_callback(self, host):
         """
         """
         def callback_gen(ip_entry, port_entry):
@@ -52,74 +43,45 @@ class Controller:
                 if not host:
                     ip = ip_entry.get()
                 self.connection.startup(int(port_entry.get()), ip)
-                self._swap_views()
+                self.swap_views()
             return f
         return callback_gen
 
-    def _swap_views(self):
+    def swap_views(self):
         """
         Destroy the setup view and create/start the paint view.
         """
-        self.view.root.destroy()
-        self.view = self._create_paint_view()
-        self.start_paint_view()
-
-    def _create_paint_view(self):
-        """
-        Return a paint view with the necessary callbacks registered.
-        """
-        view = PaintView()
-        for event_type in ["<Button-1>", "<ButtonRelease-1>", "<B1-Motion>"]:
-            view.bind_canvas_callback(event_type, self.handle_event)
-        view.bind_window_callback("<Key>", self.handle_event)
-        view.bind_tool_button_callbacks(
-                                self._set_mode_generator(DrawingType.PEN),
-                                self._set_mode_generator(DrawingType.RECT),
-                                self._set_mode_generator(DrawingType.OVAL),
-                                self._set_mode_generator(DrawingType.LINE),
-                                self._set_mode_generator(DrawingType.ERASER),
-                                self._set_mode_generator(DrawingType.TEXT),
-                                self._set_mode_generator(DrawingType.PING),
-                                self.clear_callback)
-        view.bind_thickness_scale_callback(self.thickness_callback)
-        view.bind_quit_callback(self.stop)
-        view.update_tool_text(str(self.current_mode))
-        return view
+        self.window.set_new_view(PaintView)
+        self.window.root.bind("<Key>", self.handle_event)
+        self.connection.start(self._decode_and_draw)
 
     def start(self):
         """
         """
-        self.view.start()
-
-    def start_paint_view(self):
-        """
-        Start the controllers components.
-        """
-        self.connection.start(self._decode_and_draw)
-        self.view.start()
+        self.window.start()
 
     def _decode_and_draw(self, drawing_data):
         """
         Decode the drawing(s) and pass them to the view to be displayed.
         """
         for drawing in Drawing.decode_drawings(drawing_data):
-            self.view.draw_shape(drawing)
+            self.window.view.draw_shape(drawing)
 
     def stop(self):
         """
         Shut down the connection and close the view.
         """
         self.connection.close()
-        self.view.root.destroy()
+        self.window.stop()
 
-    def _set_mode_generator(self, drawing_type):
+    def set_mode_generator(self, drawing_type):
         """
         Return a function that sets the current drawing mode to the given 
         drawing type.
         """
         def f():
             self.current_mode = drawing_type
-            self.view.update_tool_text(str(drawing_type))
+            self.window.view.update_tool_text(str(drawing_type))
         return f
 
     def _enqueue(self, drawing):
@@ -139,7 +101,7 @@ class Controller:
         Clear the drawing canvas.
         """
         drawing = Drawing(DrawingType.CLEAR, 0, (0, 0, 0, 0))
-        self.view.draw_shape(drawing)
+        self.window.view.draw_shape(drawing)
         self._enqueue(drawing)
 
     def handle_event(self, event):
@@ -188,7 +150,7 @@ class Controller:
         """
         """
         if drag_drawing:
-            self.view.clear_drawing_by_id(self.last_drawing_id)
+            self.window.view.clear_drawing_by_id(self.last_drawing_id)
 
         if not self.cancel_drawing:
             event_coord = event.x, event.y
@@ -198,7 +160,7 @@ class Controller:
             if not drag_drawing:
                 self._enqueue(drawing)
                 self.start_pos = event_coord
-            drawing_id = self.view.draw_shape(drawing)
+            drawing_id = self.window.view.draw_shape(drawing)
 
             self.last_drawing_id = drawing_id
 
@@ -206,14 +168,14 @@ class Controller:
         """
         """
         if drag_drawing:
-            self.view.clear_drawing_by_id(self.last_drawing_id)
+            self.window.view.clear_drawing_by_id(self.last_drawing_id)
 
-        if not self.cancel_drawing:
+        if not self.cancel_drawing and self.start_pos is not None:
             if drawing_type != DrawingType.TEXT:
                 drawing = Drawing(drawing_type, self.current_thickness, 
                                     self.start_pos + (event.x, event.y))
                 self._enqueue(drawing)
-                self.view.draw_shape(drawing)
+                self.window.view.draw_shape(drawing)
             else:
                 self._create_text_entry_box(self.current_thickness, 
                                         self.start_pos + (event.x, event.y))
@@ -237,7 +199,7 @@ class Controller:
             drawing = Drawing(DrawingType.TEXT, thickness, coords, 
                                 text_entry.get()[:self.TEXT_SIZE_LIMIT])
             self._enqueue(drawing)
-            self.view.draw_shape(drawing)
+            self.window.view.draw_shape(drawing)
             window.destroy()
         return f
 
@@ -247,3 +209,9 @@ class Controller:
         def f():
             window.destroy()
         return f
+
+    def update(self):
+        """
+        Force a visual update.
+        """
+        self.window.update()
