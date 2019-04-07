@@ -1,9 +1,9 @@
-from logging import Formatter, StreamHandler, DEBUG, INFO, getLogger
+from logging        import Formatter, StreamHandler, DEBUG, INFO, getLogger
 
-from pypaint.controller import Controller
+from .controller    import Controller
 
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 LOG_FORMAT = "%(asctime)s::%(name)s::%(levelname)s::%(message)s"
 TIMESTAMP_FORMAT = "%H:%M:%S"

@@ -13,5 +13,5 @@ class TestDrawing(TestCase):
 
     def test_encoding_decoding_are_equal(self):
         bytes_array = self.drawing.encode()
-        other = Drawing.decode_drawing(bytes_array)
-        self.assertEqual(self.drawing, other)
+        decoded, _ = Drawing.decode_drawing(bytes_array)
+        self.assertEqual(self.drawing, decoded)

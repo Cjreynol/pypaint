@@ -1,9 +1,9 @@
-from pypaint.connection         import Connection
-from pypaint.drawing            import Drawing
-from pypaint.drawing_type       import DrawingType
-from pypaint.paint_view         import PaintView
-from pypaint.setup_view         import SetupView
-from pypaint.text_entry_box     import TextEntryBox
+from .connection         import Connection
+from .drawing            import Drawing
+from .drawing_type       import DrawingType
+from .paint_view         import PaintView
+from .setup_view         import SetupView
+from .text_entry_box     import TextEntryBox
 
 
 class Controller:

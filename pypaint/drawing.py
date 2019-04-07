@@ -1,7 +1,7 @@
-from logging import getLogger
-from struct import calcsize, error, pack, unpack
+from logging        import getLogger
+from struct         import calcsize, error, pack, unpack
 
-from pypaint.drawing_type import DrawingType
+from .drawing_type import DrawingType
 
 
 class Drawing:
@@ -47,12 +47,14 @@ class Drawing:
             drawing, length = Drawing.decode_drawing(byte_array[i:])
             drawings.append(drawing)
             i += length
+        assert i == len(byte_array) # decoded all drawings exactly as sent
         return drawings
 
     @staticmethod
     def decode_drawing(byte_array):
         """
-        Return a Drawing instance using the data from the byte array.
+        Return a Drawing instance, and its length, using the data from the 
+        byte array.
         """
         try:
             shape_val, thickness, *coords = unpack(Drawing.MSG_PACK_STR, 
@@ -75,3 +77,16 @@ class Drawing:
 
     def __str__(self):
         return "{}:{}:{}:{}".format(self.shape, self.thickness, self.coords, self.text)
+
+    def __eq__(self, other):
+        equal = False
+        if isinstance(self, other.__class__):
+            equal = (self.shape == other.shape
+                        and self.thickness == other.thickness
+                        and tuple(self.coords) == tuple(other.coords))
+            if self.text is not None:
+                equal = equal and self.text == other.text
+        return equal
+
+    def __hash__(self):
+        return hash((self.shape, self.thickness, tuple(self.coords), self.text))
