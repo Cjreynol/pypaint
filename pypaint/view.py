@@ -32,7 +32,6 @@ class View(Frame, ABC):
         """
         pass
         
-
     @abstractmethod
     def _arrange_widgets(self):
         """

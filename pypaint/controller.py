@@ -1,3 +1,5 @@
+from threading          import Thread
+
 from .connection        import Connection
 from .drawing           import Drawing
 from .drawing_type      import DrawingType
@@ -49,21 +51,33 @@ class Controller:
 
     def swap_views(self):
         """
-        Destroy the setup view and create/start the paint view.
+        Destroy the setup view, create/start the paint view, and start a 
+        thread to pull received data and draw it.
         """
         self.window.set_new_view(PaintView)
         self.window.root.bind("<Key>", self.handle_event)
-        self.connection.start(self._decode_and_draw)
+        self.connection.start()
+        Thread(target = self._loop_decoding).start()
 
     def start(self):
         self.window.start()
+
+    def _loop_decoding(self):
+        """
+        Continuously pulls data from the connection, decodes it, and then 
+        draws it to the view.
+        """
+        while self.connection.active:
+            drawing_data = self.connection.get_incoming_data()
+            if drawing_data is not None:
+                self._decode_and_draw(drawing_data)
 
     def _decode_and_draw(self, drawing_data):
         """
         Decode the drawing(s) and pass them to the view to be displayed.
         """
         for drawing in Drawing.decode_drawings(drawing_data):
-            self.window.view.draw_shape(drawing)
+            self.window.current_view.draw_shape(drawing)
 
     def stop(self):
         self.connection.close()
@@ -76,7 +90,7 @@ class Controller:
         """
         def f():
             self.current_mode = drawing_type
-            self.window.view.update_tool_text(str(drawing_type))
+            self.window.current_view.update_tool_text(str(drawing_type))
         return f
 
     def _enqueue(self, drawing):
@@ -96,7 +110,7 @@ class Controller:
         Clear the drawing canvas.
         """
         drawing = Drawing(DrawingType.CLEAR, 0, (0, 0, 0, 0))
-        self.window.view.draw_shape(drawing)
+        self.window.current_view.draw_shape(drawing)
         self._enqueue(drawing)
 
     def handle_event(self, event):
@@ -143,7 +157,7 @@ class Controller:
         """
         """
         if drag_drawing:
-            self.window.view.clear_drawing_by_id(self.last_drawing_id)
+            self.window.current_view.clear_drawing_by_id(self.last_drawing_id)
 
         if not self.cancel_drawing:
             event_coord = event.x, event.y
@@ -153,7 +167,7 @@ class Controller:
             if not drag_drawing:
                 self._enqueue(drawing)
                 self.start_pos = event_coord
-            drawing_id = self.window.view.draw_shape(drawing)
+            drawing_id = self.window.current_view.draw_shape(drawing)
 
             self.last_drawing_id = drawing_id
 
@@ -161,14 +175,14 @@ class Controller:
         """
         """
         if drag_drawing:
-            self.window.view.clear_drawing_by_id(self.last_drawing_id)
+            self.window.current_view.clear_drawing_by_id(self.last_drawing_id)
 
         if not self.cancel_drawing and self.start_pos is not None:
             if drawing_type != DrawingType.TEXT:
                 drawing = Drawing(drawing_type, self.current_thickness, 
                                     self.start_pos + (event.x, event.y))
                 self._enqueue(drawing)
-                self.window.view.draw_shape(drawing)
+                self.window.current_view.draw_shape(drawing)
             else:
                 self._create_text_entry_box(self.current_thickness, 
                                         self.start_pos + (event.x, event.y))
@@ -192,7 +206,7 @@ class Controller:
             drawing = Drawing(DrawingType.TEXT, thickness, coords, 
                                 text_entry.get()[:self.TEXT_SIZE_LIMIT])
             self._enqueue(drawing)
-            self.window.view.draw_shape(drawing)
+            self.window.current_view.draw_shape(drawing)
             window.destroy()
         return f
 

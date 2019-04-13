@@ -19,7 +19,7 @@ class MainWindow:
         self.controller = controller
         self.root = self._create_root(window_title)
         
-        self.view = None
+        self.current_view = None
         if initial_view_class is not None:
             self._display_view(initial_view_class)
 
@@ -39,8 +39,8 @@ class MainWindow:
         """
         Instantiate the new view with the correct arguments, then display it.
         """
-        self.view = view(self.controller, self.root)
-        self.view.pack()
+        self.current_view = view(self.controller, self.root)
+        self.current_view.pack()
 
     def set_new_view(self, new_view):
         """
@@ -54,7 +54,7 @@ class MainWindow:
         -Ability to navigate forward and back in history
         -Cleanup of the entire stack(s) in destroy
         """
-        self.view.destroy()
+        self.current_view.destroy()
         self._display_view(new_view)
 
     def start(self):
@@ -67,7 +67,7 @@ class MainWindow:
         """
         Destroy the window and its resources.
         """
-        self.view.destroy()
+        self.current_view.destroy()
         self.root.destroy()
 
     def update(self):

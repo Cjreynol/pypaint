@@ -9,7 +9,8 @@ from time       import sleep
 
 class Connection:
     """
-    Provides a multi-threaded interface for socket I/O without blocking the thread of execution utilizing the Connection.
+    Provides an interface to a multi-threaded socket that handles network I/O 
+    without blocking the execution of the main program.
     """
 
     HEADER_VERSION = 1
@@ -23,21 +24,26 @@ class Connection:
         self.socket = None
         self.socket_lock = None
         self.send_queue = None
+        self.receive_queue = None
+
+    @property
+    def active(self):
+        return self.socket is not None
 
     def startup_accept(self, port):
         """
-        Start a thread to wait on an incoming connection.
+        Start a listening thread to wait on an incoming connection.
         """
-        if self.socket is None:
+        if not self.active:
             t = Thread(target = self._wait_for_connection, args = (port,))
             t.start()
             t.join()
     
     def startup_connect(self, port, ip_address):
         """
-        Start a thread to connect to another socket.
+        Start a connecting thread to connect to another socket.
         """
-        if self.socket is None:
+        if not self.active:
             t = Thread(target = self._connect_to_peer, 
                         args = (port, ip_address))
             t.start()
@@ -94,6 +100,7 @@ class Connection:
         self.socket = socket
         self.socket_lock = Lock()
         self.send_queue = Queue()
+        self.receive_queue = Queue()
 
     def _create_new_socket(self):
         """
@@ -103,42 +110,60 @@ class Connection:
         sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, True)
         return sock
 
-    def start(self, receive_callback):
+    def start(self):
         """
         Begin the sending and receiving threads for normal operation.
         """
-        if self.socket is not None:
+        if self.active:
             Thread(target = self._send).start()
-            Thread(target = self._receive, args = (receive_callback,)).start()
+            Thread(target = self._receive).start()
 
     def close(self):
         """
         Release resources held by the connection, putting it back into an 
         uninitialized state.
         """
-        if self.socket is not None:
+        if self.active:
             self.socket.close()
             with self.socket_lock:
                 self.socket = None
             self.socket_lock = None
 
-            # enqueue message to close blocking send thread
+            # enqueue messages to close blocking send thread and controller
+            # get thread from their blocking get calls
             self.send_queue.put(None)
+            self.receive_queue.put(None)
+
             self.send_queue = None
+            self.receive_queue = None
+
             getLogger(__name__).info("Connection closed.")
 
     def add_to_send_queue(self, data):
         """
         Add the given data to the queue to be sent.
         """
-        if self.socket is not None:
+        result = False
+        if self.active:
             self.send_queue.put(data)
+            result = True
+        return result
+
+    def get_incoming_data(self):
+        """
+        Blocking get from the receive queue, returns None if the connection is 
+        not active.
+        """
+        result = None
+        if self.active:
+            result = self.receive_queue.get()
+        return result
 
     def _send(self):
         """
         Loop retrieving data from the send queue and sending it on the socket.
         """
-        while self.socket is not None:
+        while self.active:
             try:
                 data = self._get_data_from_send_queue()
                 if self.socket is not None:
@@ -172,14 +197,14 @@ class Connection:
         """
         return pack(self.HEADER_PACK_STR, self.HEADER_VERSION, len(data))
 
-    def _receive(self, callback):
+    def _receive(self):
         """
-        Loop reading data from the socket and passing it to the callback.
+        Continuously read data from the socket and put it on the receive queue.
         """
         selector = DefaultSelector()
         selector.register(self.socket, EVENT_READ)
 
-        while self.socket is not None:
+        while self.active:
             try:
                 val = selector.select(self.SELECT_TIMEOUT_INTERVAL)
                 if val:
@@ -187,7 +212,7 @@ class Connection:
                         header = self.socket.recv(self.HEADER_SIZE)
                     if header:
                         data = self._read_data(header)
-                        callback(data)
+                        self.receive_queue.put(data)
                     else:           # connection closed from other end
                         self.close()
             except Exception as err:
