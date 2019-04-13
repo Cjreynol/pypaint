@@ -9,8 +9,7 @@ from time       import sleep
 
 class Connection:
     """
-    Provides a multi-threaded interface for socket I/O without blocking the 
-    thread of execution utilizing the Connection.
+    Provides a multi-threaded interface for socket I/O without blocking the thread of execution utilizing the Connection.
     """
 
     HEADER_VERSION = 1
@@ -25,24 +24,24 @@ class Connection:
         self.socket_lock = None
         self.send_queue = None
 
-    def startup(self, port, ip_address = None, callback = None):
+    def startup_accept(self, port):
         """
-        Start a thread to either accept a connection or attempt to connect to 
-        a peer.
+        Start a thread to wait on an incoming connection.
         """
         if self.socket is None:
-            if ip_address is None:
-                thread_target = self._wait_for_connection
-            else:
-                thread_target = self._connect_to_peer
-
-            t = Thread(target = thread_target, args = (port, ip_address))
+            t = Thread(target = self._wait_for_connection, args = (port,))
             t.start()
-
-            if callback is None:
-                t.join()
-            else:
-                callback()
+            t.join()
+    
+    def startup_connect(self, port, ip_address):
+        """
+        Start a thread to connect to another socket.
+        """
+        if self.socket is None:
+            t = Thread(target = self._connect_to_peer, 
+                        args = (port, ip_address))
+            t.start()
+            t.join()
 
     def _wait_for_connection(self, port, *args):
         """
@@ -119,10 +118,11 @@ class Connection:
         """
         if self.socket is not None:
             self.socket.close()
-            self.socket = None
+            with self.socket_lock:
+                self.socket = None
             self.socket_lock = None
 
-            # help blocking send thread close
+            # enqueue message to close blocking send thread
             self.send_queue.put(None)
             self.send_queue = None
             getLogger(__name__).info("Connection closed.")
@@ -147,14 +147,17 @@ class Connection:
                         self.socket.sendall(header + data)
             except Exception as err:
                 getLogger(__name__).debug(("Unexpected exception occurred,"
-                                            " send thread may be in a"
-                                            " corrupted state\n"
-                                            "Error: {}".format(err)))
+                                " send thread may be in a corrupted state\n"
+                                "Error: {}".format(err)))
 
     def _get_data_from_send_queue(self):
         """
-        Retrieve data from the queue.  If there are more than a single item, 
-        batch retrieve them to improve throughput.
+        Retrieve data from the queue.  If there is more than a single item, 
+        retrieve multiple pieces of data to improve throughput.
+
+        The queue is not guaranteed to be empty after this method, because of 
+        multi-processing new items could be enqueued between the size check 
+        and the creation of the data list.
         """
         size = self.send_queue.qsize()
         if size > 1:
@@ -189,9 +192,8 @@ class Connection:
                         self.close()
             except Exception as err:
                 getLogger(__name__).debug(("Unexpected exception occurred,"
-                                            " receive thread may be in a"
-                                            " corrupted state\n"
-                                            "Error: {}".format(err)))
+                            " receive thread may be in a corrupted state\n"
+                            "Error: {}".format(err)))
 
     def _read_data(self, header):
         """

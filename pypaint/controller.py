@@ -32,20 +32,20 @@ class Controller:
         self.current_thickness = self.DEFAULT_THICKNESS
 
         self.connection = Connection()
-        self.window = MainWindow(self, SetupView)
-            
-    def generate_setup_button_callback(self, host):
-        """
-        """
-        def callback_gen(ip_entry, port_entry):
-            def f():
-                ip = None
-                if not host:
-                    ip = ip_entry.get()
-                self.connection.startup(int(port_entry.get()), ip)
-                self.swap_views()
-            return f
-        return callback_gen
+        self.window = MainWindow(self, "PyPaint", SetupView)
+
+    def get_host_callback(self, port_entry):
+        def f():
+            self.connection.startup_accept(int(port_entry.get()))
+            self.swap_views()
+        return f
+
+    def get_connect_callback(self, port_entry, ip_entry):
+        def f():
+            self.connection.startup_connect(int(port_entry.get()), 
+                                            ip_entry.get())
+            self.swap_views()
+        return f
 
     def swap_views(self):
         """
@@ -56,8 +56,6 @@ class Controller:
         self.connection.start(self._decode_and_draw)
 
     def start(self):
-        """
-        """
         self.window.start()
 
     def _decode_and_draw(self, drawing_data):
@@ -68,11 +66,8 @@ class Controller:
             self.window.view.draw_shape(drawing)
 
     def stop(self):
-        """
-        Shut down the connection and close the view.
-        """
         self.connection.close()
-        self.window.stop()
+        self.window.destroy()
 
     def set_mode_generator(self, drawing_type):
         """
@@ -105,8 +100,6 @@ class Controller:
         self._enqueue(drawing)
 
     def handle_event(self, event):
-        """
-        """
         if event.type in [self.BUTTON_PRESS, self.BUTTON_RELEASE, self.MOTION]:
             self._handle_mouse_event(event, self.current_mode, 
                                     self._is_draggable(self.current_mode))
@@ -134,8 +127,8 @@ class Controller:
         if event.type == self.BUTTON_PRESS:
             self._handle_button_press_event(event, drawing_type, drag_drawing)
         elif (event.type == self.MOTION 
-                and self.current_mode not in 
-                    [DrawingType.PING, DrawingType.TEXT]):
+                and self.current_mode 
+                    not in [DrawingType.PING, DrawingType.TEXT]):
             self._handle_motion_event(event, drawing_type, drag_drawing)
         elif event.type == self.BUTTON_RELEASE:
             self._handle_button_release_event(event, drawing_type, drag_drawing)

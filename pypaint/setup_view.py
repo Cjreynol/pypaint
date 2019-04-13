@@ -31,6 +31,8 @@ class SetupView(View):
         self.offline_button.grid(row = 2, column = 0)
 
     def _bind_actions(self):
-        self.host_button["command"] = self.controller.generate_setup_button_callback(True)(self.ip_entry, self.port_entry)
-        self.connect_button["command"] = self.controller.generate_setup_button_callback(True)(self.ip_entry, self.port_entry)
         self.offline_button["command"] = self.controller.swap_views
+        self.host_button["command"] = self.controller.get_host_callback(
+                                                            self.port_entry)
+        self.connect_button["command"] = self.controller.get_connect_callback(
+                                                self.port_entry, self.ip_entry)
