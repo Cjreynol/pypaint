@@ -31,6 +31,9 @@ setup(
         "Topic :: Multimedia :: Graphics :: Editors"
         ],
     keywords = "drawing collaboration paint",
+    install_requires = [
+        "chadlib"
+    ],
     python_requires = ">=3",
     py_modules = ["main"],
     packages = find_packages(),

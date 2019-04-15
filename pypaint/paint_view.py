@@ -1,10 +1,11 @@
-from time import sleep
-from tkinter import (Button, Canvas, Frame, Label, Scale, Tk, 
-                        ALL, BOTH, BOTTOM, HORIZONTAL, LEFT, RIGHT, ROUND, 
-                        RAISED, W)
+from time           import sleep
+from tkinter        import (Button, Canvas, Frame, Label, Scale, Tk, ALL, 
+                            BOTH, BOTTOM, HORIZONTAL, LEFT, RIGHT, ROUND, 
+                            RAISED, W)
+
+from chadlib.gui    import View
 
 from .drawing_type  import DrawingType
-from .view          import View
 
 
 class PaintView(View):
@@ -13,7 +14,6 @@ class PaintView(View):
     FRAME_WIDTH = 120
     TOOL_LABEL_TEXT = "Current Tool:\n"
 
-    THICKNESS_LABEL_TEXT = "Thickness"
     THICKNESS_MIN = 1
     THICKNESS_MAX = 10
 
@@ -48,7 +48,7 @@ class PaintView(View):
 
         self.clear_button = Button(self.toolbar, text = str(DrawingType.CLEAR))
         self.thickness_label = Label(self.toolbar, 
-                                        text = self.THICKNESS_LABEL_TEXT)
+                                        text = "Thickness")
         self.thickness_scale = Scale(self.toolbar, from_ = self.THICKNESS_MIN, 
                                 to = self.THICKNESS_MAX, orient = HORIZONTAL)
 

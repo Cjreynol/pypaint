@@ -1,9 +1,7 @@
-from unittest import TestCase
+from unittest               import TestCase
 
-from time import time
-
-from pypaint.drawing import Drawing
-from pypaint.drawing_type import DrawingType
+from pypaint.drawing        import Drawing
+from pypaint.drawing_type   import DrawingType
 
 
 class TestDrawing(TestCase):

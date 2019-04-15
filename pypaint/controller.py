@@ -1,18 +1,22 @@
 from threading          import Thread
 
-from .connection        import Connection
+from chadlib.gui        import ControllerBase
+from chadlib.io         import Connection
+
 from .drawing           import Drawing
 from .drawing_type      import DrawingType
-from .main_window       import MainWindow
 from .paint_view        import PaintView
 from .setup_view        import SetupView
 from .text_entry_box    import TextEntryBox
 
 
-class Controller:
+class Controller(ControllerBase):
     """
     Manages the View, interface event handling, and the network connection.
     """
+
+    WINDOW_TITLE = "PyPaint"
+    DEFAULT_VIEW = SetupView
 
     DEFAULT_DRAWING_MODE = DrawingType.PEN
     DEFAULT_THICKNESS = PaintView.THICKNESS_MIN
@@ -26,6 +30,8 @@ class Controller:
     KEYPRESS = '2'
 
     def __init__(self):
+        super().__init__()
+
         self.start_pos = None
         self.last_drawing_id = None
         self.cancel_drawing = False
@@ -34,7 +40,6 @@ class Controller:
         self.current_thickness = self.DEFAULT_THICKNESS
 
         self.connection = Connection()
-        self.window = MainWindow(self, "PyPaint", SetupView)
 
     def get_host_callback(self, port_entry):
         def f():
@@ -57,20 +62,7 @@ class Controller:
         self.window.set_new_view(PaintView)
         self.window.root.bind("<Key>", self.handle_event)
         self.connection.start()
-        Thread(target = self._loop_decoding).start()
-
-    def start(self):
-        self.window.start()
-
-    def _loop_decoding(self):
-        """
-        Continuously pulls data from the connection, decodes it, and then 
-        draws it to the view.
-        """
-        while self.connection.active:
-            drawing_data = self.connection.get_incoming_data()
-            if drawing_data is not None:
-                self._decode_and_draw(drawing_data)
+        self.connection.start_data_processing(self._decode_and_draw)
 
     def _decode_and_draw(self, drawing_data):
         """
@@ -80,8 +72,8 @@ class Controller:
             self.window.current_view.draw_shape(drawing)
 
     def stop(self):
+        super().stop()
         self.connection.close()
-        self.window.destroy()
 
     def set_mode_generator(self, drawing_type):
         """
@@ -216,9 +208,3 @@ class Controller:
         def f():
             window.destroy()
         return f
-
-    def update(self):
-        """
-        Force a visual update.
-        """
-        self.window.update()

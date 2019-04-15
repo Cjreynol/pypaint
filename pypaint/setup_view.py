@@ -1,6 +1,6 @@
-from tkinter    import Button, Entry, Label
+from tkinter        import Button, Entry, Label
 
-from .view      import View
+from chadlib.gui    import View
 
 
 class SetupView(View):
