@@ -32,7 +32,14 @@ class SetupView(View):
 
     def _bind_actions(self):
         self.offline_button["command"] = self.controller.swap_views
-        self.host_button["command"] = self.controller.get_host_callback(
-                                                            self.port_entry)
-        self.connect_button["command"] = self.controller.get_connect_callback(
-                                                self.port_entry, self.ip_entry)
+        self.host_button["command"] = self._startup_host
+        self.connect_button["command"] = self._startup_connect
+
+    def _startup_host(self):
+        self.controller.startup_listening(int(self.port_entry.get()))
+        self.controller.swap_views()
+
+    def _startup_connect(self):
+        self.controller.startup_connect(int(self.port_entry.get()),
+                                        self.ip_entry.get())
+        self.controller.swap_views()

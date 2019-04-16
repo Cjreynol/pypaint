@@ -43,12 +43,11 @@ class PaintView(View):
         for tool in DrawingType:
             if tool != DrawingType.CLEAR:   # clear button has a special action
                 button = Button(self.toolbar, text = str(tool), 
-                    command = self.controller.set_mode_generator(tool))
+                    command = self._create_change_mode_lambda(tool))
                 self.buttons.append(button)
 
         self.clear_button = Button(self.toolbar, text = str(DrawingType.CLEAR))
-        self.thickness_label = Label(self.toolbar, 
-                                        text = "Thickness")
+        self.thickness_label = Label(self.toolbar, text = "Thickness")
         self.thickness_scale = Scale(self.toolbar, from_ = self.THICKNESS_MIN, 
                                 to = self.THICKNESS_MAX, orient = HORIZONTAL)
 
@@ -135,7 +134,7 @@ class PaintView(View):
             r = i * self.PING_RADIUS_FACTOR
             circle_coords = [x - r, y - r, x + r, y + r]
             circle_id = self.canvas.create_oval(circle_coords, 
-                width = thickness)
+                                                width = thickness)
             self.controller.update()  # force the canvas to visually update
             sleep(self.PING_DELAY)
             self.clear_drawing_by_id(circle_id)
@@ -160,3 +159,6 @@ class PaintView(View):
         Update the toolbar label text with its default text + the given text.
         """
         self.current_tool_label["text"] = self.TOOL_LABEL_TEXT + text
+
+    def _create_change_mode_lambda(self, tool):
+        return lambda: self.controller.change_mode(tool)

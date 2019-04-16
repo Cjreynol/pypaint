@@ -14,3 +14,14 @@ class DrawingType(Enum):
 
     def __str__(self):
         return self.name.capitalize()
+
+    @staticmethod
+    def is_draggable(drawing_type):
+        return drawing_type in {DrawingType.RECT, DrawingType.OVAL, 
+                                DrawingType.LINE}
+
+    @staticmethod
+    def is_motion_related(drawing_type):
+        return drawing_type in {DrawingType.PEN, DrawingType.RECT, 
+                                DrawingType.OVAL, DrawingType.LINE, 
+                                DrawingType.ERASER} 
