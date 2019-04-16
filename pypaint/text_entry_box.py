@@ -10,6 +10,7 @@ class TextEntryBox(Toplevel):
 
         self.title("Enter your text")
         self.bind("<Return>", lambda event: self._confirm())
+        self.bind("<Escape>", lambda event: self._cancel())
 
         self.controller = controller
         self.coords = coords

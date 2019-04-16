@@ -7,7 +7,6 @@ from .drawing           import Drawing
 from .drawing_type      import DrawingType
 from .paint_view        import PaintView
 from .setup_view        import SetupView
-from .text_entry_box    import TextEntryBox
 
 
 class Controller(ControllerBase):
@@ -15,11 +14,8 @@ class Controller(ControllerBase):
     Manages the View, interface event handling, and the network connection.
     """
 
-    WINDOW_TITLE = "PyPaint"
-    DEFAULT_VIEW = SetupView
-
-    DEFAULT_DRAWING_MODE = DrawingType.PEN
-    DEFAULT_THICKNESS = PaintView.THICKNESS_MIN
+    THICKNESS_MIN = 1
+    THICKNESS_MAX = 10
 
     TEXT_SIZE_LIMIT = 128
 
@@ -30,13 +26,13 @@ class Controller(ControllerBase):
     KEYPRESS = '2'
 
     def __init__(self):
-        super().__init__()
+        super().__init__("PyPaint", default_view = SetupView)
 
         self.start_pos = None
         self.last_drawing_id = None
 
-        self.current_mode = self.DEFAULT_DRAWING_MODE
-        self.current_thickness = self.DEFAULT_THICKNESS
+        self.current_mode = DrawingType.PEN
+        self.current_thickness = self.THICKNESS_MIN
 
         self.connection = Connection()
 
@@ -93,7 +89,7 @@ class Controller(ControllerBase):
         """
         self.start_pos = event.x, event.y
         if self.current_mode == DrawingType.TEXT:
-            TextEntryBox(self, (self.start_pos + (0, 0)))
+            self.current_view.create_text_entry(self.start_pos + (0, 0))
 
     def _handle_motion_event(self, event):
         """
@@ -113,8 +109,8 @@ class Controller(ControllerBase):
                 self._enqueue(drawing)
                 self.start_pos = event_coords
             else:
-                self.current_view.clear_drawing_by_id(
-                                                        self.last_drawing_id)
+                self.current_view.clear_drawing_by_id(self.last_drawing_id)
+
             self.last_drawing_id = drawing_id
 
     def _handle_button_release_event(self, event):
@@ -149,14 +145,6 @@ class Controller(ControllerBase):
         """
         self._create_drawing(DrawingType.TEXT, self.current_thickness, coords, 
                                 text[:self.TEXT_SIZE_LIMIT])
-
-    def change_mode(self, drawing_type):
-        """
-        Update the mode to match the given drawing type, in both the 
-        controller and the window display.
-        """
-        self.current_mode = drawing_type
-        self.current_view.update_tool_text(str(drawing_type))
         
     def thickness_callback(self, thickness_value):
         """

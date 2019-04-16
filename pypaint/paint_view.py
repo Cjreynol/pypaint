@@ -1,32 +1,33 @@
-from time           import sleep
-from tkinter        import (Button, Canvas, Frame, Label, Scale, Tk, ALL, 
-                            BOTH, BOTTOM, HORIZONTAL, LEFT, RIGHT, ROUND, 
-                            RAISED, W)
+from time               import sleep
+from tkinter            import (Button, Canvas, Frame, Label, Scale, Tk, ALL, 
+                                BOTH, BOTTOM, HORIZONTAL, LEFT, RIGHT, ROUND, 
+                                RAISED, SUNKEN, W)
 
-from chadlib.gui    import View
+from chadlib.gui        import View
 
-from .drawing_type  import DrawingType
+from .drawing_type      import DrawingType
+from .text_entry_box    import TextEntryBox
 
 
 class PaintView(View):
 
     FRAME_BORDER_WIDTH = 2
     FRAME_WIDTH = 120
-    TOOL_LABEL_TEXT = "Current Tool:\n"
-
-    THICKNESS_MIN = 1
-    THICKNESS_MAX = 10
 
     CANVAS_HEIGHT = 600
     CANVAS_WIDTH = 800
     CANVAS_BACKGROUND_COLOR = "#ffffff"
 
-    ERASER_COLOR = CANVAS_BACKGROUND_COLOR
-
     PING_DELAY = 0.1
     NUM_PINGS = 3
     PING_RADIUS_FACTOR = 10
+
     FONT_BASE_SIZE = 10
+
+    def __init__(self, controller, root):
+        super().__init__(controller, root)
+
+        self.current_tool_index = 0
 
     def _create_widgets(self):
         self.canvas = Canvas(self, width = self.CANVAS_WIDTH, 
@@ -35,26 +36,29 @@ class PaintView(View):
             
         self.toolbar = Frame(self, width = self.FRAME_WIDTH, relief = RAISED, 
                                 bd = self.FRAME_BORDER_WIDTH)
-        self.current_tool_label = Label(self.toolbar, 
-                                    text = (self.TOOL_LABEL_TEXT 
-                                        + str(self.controller.current_mode)))
 
         self.buttons = []
-        for tool in DrawingType:
-            if tool != DrawingType.CLEAR:   # clear button has a special action
-                button = Button(self.toolbar, text = str(tool), 
-                    command = self._create_change_mode_lambda(tool))
+        for d_type in DrawingType:
+            if d_type != DrawingType.CLEAR:   # clear button has a special action
+                button = Button(self.toolbar, text = str(d_type), 
+                    # len(buttons) is used instead of the index because some 
+                    # drawing types are skipped, so the DrawingType index != 
+                    # toolbar button index
+                    command = self._create_change_mode_callback(d_type, len(self.buttons)))
                 self.buttons.append(button)
+        # TODO CJR:  there is a potential disconnect between this, the 
+        # current tool index and the default current mode of the controller
+        self.buttons[0]["relief"] = SUNKEN
 
         self.clear_button = Button(self.toolbar, text = str(DrawingType.CLEAR))
         self.thickness_label = Label(self.toolbar, text = "Thickness")
-        self.thickness_scale = Scale(self.toolbar, from_ = self.THICKNESS_MIN, 
-                                to = self.THICKNESS_MAX, orient = HORIZONTAL)
+        self.thickness_scale = Scale(self.toolbar, orient = HORIZONTAL, 
+                                        from_ = self.controller.THICKNESS_MIN, 
+                                        to = self.controller.THICKNESS_MAX)
 
     def _arrange_widgets(self):
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)
         self.toolbar.pack(side = LEFT, fill = BOTH, expand = True)
-        self.current_tool_label.pack()
 
         for button in self.buttons:
             button.pack()
@@ -72,25 +76,28 @@ class PaintView(View):
 
     def draw_shape(self, drawing):
         """
-        Determine and call the appropriate drawing function based on the 
-        shape type.
+        Call the appropriate draw call based on the drawing type
         """
-        lookup = {DrawingType.PEN : self._draw_line, 
-                    DrawingType.RECT : self._draw_rect,
-                    DrawingType.OVAL : self._draw_oval,
-                    DrawingType.LINE : self._draw_line,
-                    DrawingType.ERASER : self._draw_eraser_line,
-                    DrawingType.PING : self._draw_ping,
-                    DrawingType.CLEAR : self._clear_canvas,
-                    DrawingType.TEXT : self._draw_text}
-        draw_func = lookup[drawing.shape]
-        if drawing.shape == DrawingType.CLEAR:
-            args = []
+        drawing_id = None
+        if drawing.shape == DrawingType.PEN:
+            drawing_id = self._draw_line(drawing.coords, drawing.thickness)
+        elif drawing.shape == DrawingType.RECT:
+            drawing_id = self._draw_rect(drawing.coords, drawing.thickness)
+        elif drawing.shape == DrawingType.OVAL:
+            drawing_id = self._draw_oval(drawing.coords, drawing.thickness)
+        elif drawing.shape == DrawingType.LINE:
+            drawing_id = self._draw_line(drawing.coords, drawing.thickness)
+        elif drawing.shape == DrawingType.ERASER:
+            drawing_id = self._draw_eraser_line(drawing.coords, 
+                                                drawing.thickness)
+        elif drawing.shape == DrawingType.PING:
+            drawing_id = self._draw_ping(drawing.coords, drawing.thickness)
+        elif drawing.shape == DrawingType.CLEAR:
+            drawing_id = self._clear_canvas()
         elif drawing.shape == DrawingType.TEXT:
-            args = [drawing.coords, drawing.thickness, drawing.text]
-        else:
-            args = [drawing.coords, drawing.thickness]
-        return draw_func(*args)
+            drawing_id = self._draw_text(drawing.coords, drawing.thickness, 
+                                            drawing.text)
+        return drawing_id
 
     def _draw_rect(self, coords, thickness):
         """
@@ -117,7 +124,7 @@ class PaintView(View):
         """
         return self.canvas.create_line(*coords, width = thickness,
                                         capstyle = ROUND, 
-                                        fill = self.ERASER_COLOR)
+                                        fill = self.CANVAS_BACKGROUND_COLOR)
 
     def _clear_canvas(self):
         """
@@ -154,11 +161,17 @@ class PaintView(View):
         """
         self.canvas.delete(drawing_id)
 
-    def update_tool_text(self, text):
+    def _create_change_mode_callback(self, drawing_type, button_index):
         """
-        Update the toolbar label text with its default text + the given text.
+        Update the controller's drawing mode and the currently selected button.
         """
-        self.current_tool_label["text"] = self.TOOL_LABEL_TEXT + text
+        def f():
+            self.controller.current_mode = drawing_type
 
-    def _create_change_mode_lambda(self, tool):
-        return lambda: self.controller.change_mode(tool)
+            self.buttons[self.current_tool_index]["relief"] = RAISED
+            self.current_tool_index = button_index
+            self.buttons[self.current_tool_index]["relief"] = SUNKEN
+        return f
+
+    def create_text_entry(self, coords):
+        TextEntryBox(self.controller, coords)

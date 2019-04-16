@@ -60,14 +60,15 @@ class Drawing:
             shape_val, thickness, *coords = unpack(Drawing.MSG_PACK_STR, 
                                                 byte_array[:Drawing.MSG_SIZE])
             length = Drawing.MSG_SIZE
-            if len(byte_array) == Drawing.MSG_SIZE:
+            if len(byte_array) == Drawing.MSG_SIZE: # no extra text data
                 text = None
             else:   
                 text_len = unpack("I", 
                         byte_array[Drawing.MSG_SIZE:Drawing.MSG_SIZE + 4])[0]
                 text = unpack(str(text_len) + "s", 
                                 byte_array[Drawing.MSG_SIZE + 4:])[0].decode()
-                length += text_len + 4  # 4 is the size in bytes of the I text length field
+                # 4 is the size in bytes of the I text length field
+                length += text_len + 4  
             drawing = Drawing(DrawingType(shape_val), thickness, coords, text)
         except (ValueError, error) as err:  # struct.error
             getLogger(__name__).debug("Error in decoding: {}".format(err))
@@ -76,7 +77,8 @@ class Drawing:
         return drawing, length
 
     def __str__(self):
-        return "{}:{}:{}:{}".format(self.shape, self.thickness, self.coords, self.text)
+        return "{}:{}:{}:{}".format(self.shape, self.thickness, self.coords, 
+                                    self.text)
 
     def __eq__(self, other):
         equal = False
@@ -89,4 +91,5 @@ class Drawing:
         return equal
 
     def __hash__(self):
-        return hash((self.shape, self.thickness, tuple(self.coords), self.text))
+        return hash((self.shape, self.thickness, tuple(self.coords), 
+                        self.text))
