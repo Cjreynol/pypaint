@@ -10,8 +10,9 @@ class TestController(TestCase):
     
     def setUp(self):
         self.controller = Controller()
+        self.controller.window.root = MagicMock()       # supress window pop-up
         self.test_event = MagicMock(type = Controller.BUTTON_PRESS, 
-                                    x = 2, y = 3)
+                                    x = 2, y = 3, keysym = "Escape")
         self.default_pos = 1, 1
 
     def tearDown(self):
@@ -61,3 +62,14 @@ class TestController(TestCase):
         self.controller.handle_event(self.test_event)
 
         self.assertIsNone(self.controller.last_drawing_id)
+
+    def test_all_events_all_drawing_modes(self):
+        self.controller.swap_views()
+        self.controller._enqueue = MagicMock()
+        event_types = [Controller.BUTTON_PRESS, Controller.MOTION, 
+                        Controller.BUTTON_RELEASE, Controller.KEYPRESS]
+        for drawing_mode in DrawingType:
+            for event_type in event_types:
+                self.test_event.type = event_type
+                self.controller.current_mode = drawing_mode
+                self.controller.handle_event(self.test_event)
