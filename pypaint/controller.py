@@ -1,6 +1,6 @@
 from tkinter            import Toplevel
 
-from chadlib.gui        import ControllerBase
+from chadlib.gui        import ControllerBase, TextEntryDialog
 from chadlib.io         import Connection
 
 from .drawing           import Drawing
@@ -25,13 +25,22 @@ class Controller(ControllerBase):
 
     def __init__(self, application_state):
         super().__init__("PyPaint", application_state, PaintView)
-        self.connection = Connection()
+        self.connection = Connection(self.application_state.send_queue, 
+                                        self.application_state.receive_queue)
 
     def startup_listening(self):
-        self.connection.startup_accept(self.DEFAULT_PORT)
+        self.connection.startup_accept(self.DEFAULT_PORT, 
+                                        self.start_processing)
+
+    def get_ip(self):
+        TextEntryDialog("Enter IP address of host", self.startup_connect, None)
 
     def startup_connect(self, ip_address):
-        self.connection.startup_connect(self.DEFAULT_PORT, ip_address)
+        self.connection.startup_connect(self.DEFAULT_PORT, ip_address,
+                                        self.start_processing)
+
+    def start_processing(self):
+        self.connection.start_data_processing(self._decode_and_draw)
 
     def _decode_and_draw(self, drawing_data):
         """
@@ -52,7 +61,7 @@ class Controller(ControllerBase):
         """
         Encode the drawing as bytes and put it in the send queue.
         """
-        self.connection.add_to_send_queue(drawing.encode())
+        self.application_state.add_to_send_queue(drawing.encode())
 
     def handle_event(self, event):
         """
@@ -133,7 +142,7 @@ class Controller(ControllerBase):
 
     def create_text(self, text, coords):
         """
-        A specialized version of _create_drawing for use by the TextEntryBox.
+        A specialized version of _create_drawing for use by the text tool.
         """
         self._create_drawing(DrawingType.TEXT, 
                                 self.application_state.current_thickness, 
@@ -152,3 +161,7 @@ class Controller(ControllerBase):
         drawing = Drawing(drawing_type, thickness, coords, text)
         self.current_view.draw_shape(drawing)
         self._enqueue(drawing)
+
+    def _get_menu_data(self):
+        return { "Network" : [ ("Host", self.startup_listening),
+                                ("Connect", self.get_ip) ] }
