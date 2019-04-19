@@ -1,6 +1,7 @@
 from logging        import Formatter, StreamHandler, DEBUG, INFO, getLogger
 
 from .controller    import Controller
+from .paint_state   import PaintState
 
 
 __version__ = "2.0.2"
@@ -21,7 +22,8 @@ def create_logger(debug_level):
 
 def main(debug_level):
     logger = create_logger(debug_level)
-    controller = Controller()
+    state = PaintState()
+    controller = Controller(state)
     controller.start()
 
 if __name__ == "__main__":

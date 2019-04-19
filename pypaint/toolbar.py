@@ -13,24 +13,19 @@ class Toolbar(View):
     FRAME_BORDER_WIDTH = 2
     FRAME_WIDTH = 120
 
-    def __init__(self, controller, root, default_type, min_thickness, 
-                    max_thickness):
-        self.current_type = default_type
-        self.min_thickness = min_thickness
-        self.max_thickness = max_thickness
-
-        super().__init__(controller, root, width = self.FRAME_WIDTH, 
+    def __init__(self, controller, root, paint_state):
+        super().__init__(controller, root, paint_state, width = self.FRAME_WIDTH, 
                             relief = RAISED, bd = self.FRAME_BORDER_WIDTH)
 
     def _create_widgets(self):
         self.buttons = { draw_type : Button(self, text = str(draw_type)) 
                             for draw_type in DrawingType 
                                 if draw_type != DrawingType.CLEAR }
-        self.buttons[self.current_type]["relief"] = SUNKEN
+        self.buttons[self.application_state.current_type]["relief"] = SUNKEN
         self.thickness_label = Label(self, text = "Thickness")
         self.thickness_scale = Scale(self, orient = HORIZONTAL, 
-                                    from_ = self.min_thickness,
-                                    to = self.max_thickness)
+                                from_ = self.application_state.THICKNESS_MIN,
+                                to = self.application_state.THICKNESS_MAX)
         self.clear_button = Button(self, text = str(DrawingType.CLEAR))
 
     def _arrange_widgets(self):
@@ -44,14 +39,15 @@ class Toolbar(View):
         for draw_type, button in self.buttons.items():
             button["command"] = self._draw_button_callback(draw_type)
 
-        self.thickness_scale["command"] = self.controller.thickness_callback
+        self.thickness_scale["command"] = self._thickness_callback
         self.clear_button["command"] = self.controller.clear_callback
+
+    def _thickness_callback(self, thickness_value):
+        self.application_state.current_thickness = int(thickness_value)
 
     def _draw_button_callback(self, drawing_type):
         def f():
-            self.buttons[self.current_type]["relief"] = RAISED
-            self.current_type = drawing_type
-            self.buttons[self.current_type]["relief"] = SUNKEN
-
-            self.controller.current_mode = drawing_type
+            self.buttons[self.application_state.current_type]["relief"] = RAISED
+            self.application_state.current_type = drawing_type
+            self.buttons[self.application_state.current_type]["relief"] = SUNKEN
         return f

@@ -18,9 +18,6 @@ class PaintCanvas(View):
 
     FONT_BASE_SIZE = 10
 
-    def __init__(self, *args):
-        super().__init__(*args)
-
     def _create_widgets(self):
         self.canvas = Canvas(self, width = self.CANVAS_WIDTH, 
                                 height = self.CANVAS_HEIGHT, 
@@ -30,7 +27,8 @@ class PaintCanvas(View):
         self.canvas.pack()
 
     def _bind_actions(self):
-        for event_type in ["<Button-1>", "<ButtonRelease-1>", "<B1-Motion>"]:
+        for event_type in ["<Key>", "<Button-1>", "<ButtonRelease-1>", 
+                            "<B1-Motion>"]:
             self.canvas.bind(event_type, self.controller.handle_event)
 
     def draw_rect(self, coords, thickness):
@@ -84,10 +82,10 @@ class PaintCanvas(View):
         """
         Render text at the first point.
         """
-        x, y = coords[0], coords[1]
         font_size = self.FONT_BASE_SIZE + (thickness - 1) * 2
-        self.canvas.create_text(x, y, font = "Arial {}".format(font_size),
-                                    anchor = W, text = drawing_text)
+        self.canvas.create_text(coords[0], coords[1], anchor = W,
+                                    font = "Arial {}".format(font_size),
+                                    text = drawing_text)
 
     def clear_drawing_by_id(self, drawing_id):
         """

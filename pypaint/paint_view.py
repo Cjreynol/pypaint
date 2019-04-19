@@ -1,22 +1,20 @@
 from tkinter            import BOTH, LEFT, RIGHT
 
-from chadlib.gui        import View
+from chadlib.gui        import TextEntryDialog, View
 
 from .drawing_type      import DrawingType
 from .paint_canvas      import PaintCanvas
-from .text_entry_box    import TextEntryBox
 from .toolbar           import Toolbar
 
 
 class PaintView(View):
 
     def _create_widgets(self):
-        self.canvas = PaintCanvas(self.controller, self)
+        self.canvas = PaintCanvas(self.controller, self, 
+                                    self.application_state)
             
-        self.toolbar = Toolbar(self.controller, self, 
-                                self.controller.current_mode, 
-                                self.controller.THICKNESS_MIN, 
-                                self.controller.THICKNESS_MAX)
+        self.toolbar = Toolbar(self.controller, self, self.application_state)
+
     def _arrange_widgets(self):
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)
         self.toolbar.pack(side = LEFT, fill = BOTH, expand = True)
@@ -59,4 +57,5 @@ class PaintView(View):
         self.canvas.clear_drawing_by_id(drawing_id)
 
     def create_text_entry(self, coords):
-        TextEntryBox(self.controller, coords)
+        TextEntryDialog("Enter text to display", self.controller.create_text, 
+                        coords)
