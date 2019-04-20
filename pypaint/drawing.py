@@ -10,7 +10,7 @@ class Drawing:
     sending/receiving over a network.
     """
 
-    MSG_PACK_STR = "iI4i"      # shape, thickness, 4 coord values
+    MSG_PACK_STR = "iI4iI"      # shape, thickness, 4 coord values, text length
     MSG_SIZE = calcsize(MSG_PACK_STR)
 
     def __init__(self, shape, thickness, coords, text = None):
@@ -23,16 +23,17 @@ class Drawing:
         """
         Return a byte array representing this instance.
         """
+        bytes_msg = None
         try:
+            text_length = 0 if self.text is None else len(self.text)
             bytes_msg = pack(self.MSG_PACK_STR, self.shape.value, 
-                                self.thickness, *self.coords)
+                                self.thickness, *self.coords, text_length)
             if self.text is not None:
-                text_pack_str = "I{}s".format(len(self.text))
-                bytes_msg += pack(text_pack_str, len(self.text), 
-                                    self.text.encode())
+                text_pack_str = "{}s".format(len(self.text))
+                bytes_msg += pack(text_pack_str, self.text.encode())
+
         except error as err:    # struct.error
             getLogger(__name__).debug("Error in encoding: {}".format(err))
-            bytes_msg = b''
 
         return bytes_msg
 
@@ -43,11 +44,19 @@ class Drawing:
         """
         drawings = []
         i = 0
-        while i < len(byte_array):
-            drawing, length = Drawing.decode_drawing(byte_array[i:])
-            drawings.append(drawing)
-            i += length
-        assert i == len(byte_array) # decoded all drawings exactly as sent
+        try:
+            while i < len(byte_array):
+                drawing, length = Drawing.decode_drawing(byte_array[i:])
+                drawings.append(drawing)
+                i += length
+            assert i == len(byte_array) # decoded all drawings exactly as sent
+
+        except (ValueError, error) as err:  # struct.error
+            getLogger(__name__).debug("Error in decoding: {}".format(err))
+        except AssertionError as err:
+            getLogger(__name__).debug("Error decoding, decoded length does "
+                                    "not match byte length\n Decoded - "
+                                    "{} bytes - {}".format(i, len(byte_array)))
         return drawings
 
     @staticmethod
@@ -56,24 +65,20 @@ class Drawing:
         Return a Drawing instance, and its length, using the data from the 
         byte array.
         """
-        try:
-            shape_val, thickness, *coords = unpack(Drawing.MSG_PACK_STR, 
+        drawing = None
+        length = Drawing.MSG_SIZE
+        shape_val, thickness, *coords, text_length = unpack(
+                                                Drawing.MSG_PACK_STR, 
                                                 byte_array[:Drawing.MSG_SIZE])
-            length = Drawing.MSG_SIZE
-            if len(byte_array) == Drawing.MSG_SIZE: # no extra text data
-                text = None
-            else:   
-                text_len = unpack("I", 
-                        byte_array[Drawing.MSG_SIZE:Drawing.MSG_SIZE + 4])[0]
-                text = unpack(str(text_len) + "s", 
-                                byte_array[Drawing.MSG_SIZE + 4:])[0].decode()
-                # 4 is the size in bytes of the I text length field
-                length += text_len + 4  
-            drawing = Drawing(DrawingType(shape_val), thickness, coords, text)
-        except (ValueError, error) as err:  # struct.error
-            getLogger(__name__).debug("Error in decoding: {}".format(err))
-            drawing = None
-            length = 0
+        text = None
+        if text_length > 0:
+            # [0].decode() because unpack will always returns a singleton 
+            # list with a bytes object
+            text = unpack(str(text_length) + "s", 
+                            byte_array[Drawing.MSG_SIZE:])[0].decode()
+            length += text_length
+
+        drawing = Drawing(DrawingType(shape_val), thickness, coords, text)
         return drawing, length
 
     def __str__(self):

@@ -47,10 +47,6 @@ class Controller(ControllerBase):
     def _decode_and_draw(self, drawing_data):
         """
         Decode the drawing(s) and pass them to the view to be displayed.
-
-        TODO CJR:  need to get the network connection working again, and 
-        find a place to call connection.start_data_processing with this as 
-        the callback.
         """
         for drawing in Drawing.decode_drawings(drawing_data):
             self.current_view.draw_shape(drawing)
@@ -63,7 +59,9 @@ class Controller(ControllerBase):
         """
         Encode the drawing as bytes and put it in the send queue.
         """
-        self.application_state.add_to_send_queue(drawing.encode())
+        encoded_drawing = drawing.encode()
+        if encoded_drawing is not None:
+            self.application_state.add_to_send_queue(encoded_drawing)
 
     def handle_event(self, event):
         """
