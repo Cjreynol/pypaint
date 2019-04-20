@@ -10,11 +10,10 @@ from .paint_view        import PaintView
 
 class Controller(ControllerBase):
     """
-    Manages the View, interface event handling, and the network connection.
+    Manages the interface event handling and the network connection.
     """
 
     DEFAULT_PORT = 2423
-
     TEXT_SIZE_LIMIT = 128
 
     # aliases for tkinter event types
@@ -34,6 +33,9 @@ class Controller(ControllerBase):
 
     def get_ip(self):
         TextEntryDialog("Enter IP address of host", self.startup_connect, None)
+
+    def disconnect(self):
+        self.connection.close()
 
     def startup_connect(self, ip_address):
         self.connection.startup_connect(self.DEFAULT_PORT, ip_address,
@@ -162,6 +164,13 @@ class Controller(ControllerBase):
         self.current_view.draw_shape(drawing)
         self._enqueue(drawing)
 
-    def _get_menu_data(self):
-        return { "Network" : [ ("Host", self.startup_listening),
-                                ("Connect", self.get_ip) ] }
+    def get_menu_data(self):
+        """
+        Get the default menu setup data, add network control commands.
+        """
+        menu_setup = super().get_menu_data()
+        menu_setup.add_submenu_items("Network", 
+                                        [("Host", self.startup_listening),
+                                        ("Connect", self.get_ip),
+                                        ("Disconnect", self.disconnect)])
+        return menu_setup
