@@ -1,3 +1,4 @@
+from threading          import Thread
 from tkinter            import BOTH, LEFT, RIGHT
 
 from chadlib.gui        import TextEntryDialog, View
@@ -18,6 +19,14 @@ class PaintView(View):
     def _arrange_widgets(self):
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)
         self.toolbar.pack(side = LEFT, fill = BOTH, expand = True)
+
+    def start_processing_draw_queue(self):
+        def f():
+            while self.application_state.active:
+                drawing = self.application_state.draw_queue.get()
+                if drawing is not None:
+                    self.draw_shape(drawing)
+        Thread(target = f).start()
 
     def draw_shape(self, drawing):
         """

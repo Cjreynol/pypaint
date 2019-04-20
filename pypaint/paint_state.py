@@ -17,6 +17,9 @@ class PaintState:
 
         self.send_queue = Queue()
         self.receive_queue = Queue()
+        self.draw_queue = Queue()
+
+        self.active = True
 
     def clear_drawing_state(self):
         self.start_pos = None

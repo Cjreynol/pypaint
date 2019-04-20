@@ -1,3 +1,4 @@
+from threading          import Thread
 from tkinter            import Toplevel
 
 from chadlib.gui        import ControllerBase, TextEntryDialog
@@ -42,18 +43,24 @@ class Controller(ControllerBase):
                                         self.start_processing)
 
     def start_processing(self):
-        self.connection.start_data_processing(self._decode_and_draw)
+        self.start_processing_receive_queue()
+        self.current_view.start_processing_draw_queue()
 
-    def _decode_and_draw(self, drawing_data):
-        """
-        Decode the drawing(s) and pass them to the view to be displayed.
-        """
-        for drawing in Drawing.decode_drawings(drawing_data):
-            self.current_view.draw_shape(drawing)
+    def start_processing_receive_queue(self):
+        def f():
+            while self.application_state.active:
+                data = self.application_state.receive_queue.get()
+                if data is not None:
+                    for drawing in Drawing.decode_drawings(data):
+                        self.application_state.draw_queue.put(drawing)
+        Thread(target = f).start()
 
     def stop(self):
         super().stop()
         self.connection.close()
+        self.application_state.receive_queue.put(None)    # release the decoding thread
+        self.application_state.draw_queue.put(None)       # release the drawing thread
+        self.application_state.active = False
 
     def _enqueue(self, drawing):
         """
