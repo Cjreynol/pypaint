@@ -13,6 +13,7 @@ class PaintState:
     def __init__(self):
         self.current_type = DrawingType.PEN
         self.current_thickness = self.THICKNESS_MIN
+        self.current_color = "#000000"      # default to black
 
         self.start_pos = None
         self.drawing_ids = Stack()

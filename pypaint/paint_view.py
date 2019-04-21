@@ -37,27 +37,34 @@ class PaintView(View):
         drawing_id = None
         if drawing.shape is DrawingType.PEN:
             drawing_id = self.canvas.draw_line(drawing.coords, 
-                                                drawing.thickness)
+                                                drawing.thickness,
+                                                drawing.color)
         elif drawing.shape is DrawingType.RECT:
             drawing_id = self.canvas.draw_rect(drawing.coords, 
-                                                drawing.thickness)
+                                                drawing.thickness,
+                                                drawing.color)
         elif drawing.shape is DrawingType.OVAL:
             drawing_id = self.canvas.draw_oval(drawing.coords, 
-                                                drawing.thickness)
+                                                drawing.thickness,
+                                                drawing.color)
         elif drawing.shape is DrawingType.LINE:
             drawing_id = self.canvas.draw_line(drawing.coords, 
-                                                drawing.thickness)
+                                                drawing.thickness,
+                                                drawing.color)
         elif drawing.shape is DrawingType.ERASER:
             drawing_id = self.canvas.draw_eraser_line(drawing.coords, 
-                                                        drawing.thickness)
+                                                        drawing.thickness,
+                                                        drawing.color)
         elif drawing.shape is DrawingType.PING:
             drawing_id = self.canvas.draw_ping(drawing.coords, 
-                                                drawing.thickness)
+                                                drawing.thickness,
+                                                drawing.color)
         elif drawing.shape is DrawingType.CLEAR:
             self.canvas.clear_canvas()
         elif drawing.shape is DrawingType.TEXT:
             drawing_id = self.canvas.draw_text(drawing.coords, 
                                                 drawing.thickness, 
+                                                drawing.color,
                                                 drawing.text)
         elif drawing.shape is DrawingType.UNDO:
             self.canvas.undo()

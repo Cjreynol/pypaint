@@ -10,12 +10,14 @@ class Drawing:
     sending/receiving over a network.
     """
 
-    MSG_PACK_STR = "iI4iI"      # shape, thickness, 4 coord values, text length
+    # shape, thickness, # + 6 hex digits for color, 4 coord values, text length
+    MSG_PACK_STR = "iI7s4iI"      
     MSG_SIZE = calcsize(MSG_PACK_STR)
 
-    def __init__(self, shape, thickness, coords, text = None):
+    def __init__(self, shape, thickness, color, coords, text = None):
         self.shape = shape
         self.thickness = thickness
+        self.color = color
         self.coords = coords
         self.text = text
 
@@ -27,7 +29,8 @@ class Drawing:
         try:
             text_length = 0 if self.text is None else len(self.text)
             bytes_msg = pack(self.MSG_PACK_STR, self.shape.value, 
-                                self.thickness, *self.coords, text_length)
+                                self.thickness, self.color.encode(), 
+                                *self.coords, text_length)
             if self.text is not None:
                 text_pack_str = "{}s".format(len(self.text))
                 bytes_msg += pack(text_pack_str, self.text.encode())
@@ -67,29 +70,31 @@ class Drawing:
         """
         drawing = None
         length = Drawing.MSG_SIZE
-        shape_val, thickness, *coords, text_length = unpack(
+        shape_val, thickness, color, *coords, text_length = unpack(
                                                 Drawing.MSG_PACK_STR, 
                                                 byte_array[:Drawing.MSG_SIZE])
         text = None
         if text_length > 0:
             # [0].decode() because unpack will always returns a singleton 
-            # list with a bytes object
+            # list of a bytes object
             text = unpack(str(text_length) + "s", 
                             byte_array[Drawing.MSG_SIZE:])[0].decode()
             length += text_length
 
-        drawing = Drawing(DrawingType(shape_val), thickness, coords, text)
+        drawing = Drawing(DrawingType(shape_val), thickness, color.decode(), 
+                            coords, text)
         return drawing, length
 
     def __str__(self):
-        return "{}:{}:{}:{}".format(self.shape, self.thickness, self.coords, 
-                                    self.text)
+        return "{}:{}:{}:{}:{}".format(self.shape, self.thickness, self.color, 
+                                    self.coords, self.text)
 
     def __eq__(self, other):
         equal = False
         if isinstance(self, other.__class__):
             equal = (self.shape == other.shape
                         and self.thickness == other.thickness
+                        and self.color == other.color
                         and tuple(self.coords) == tuple(other.coords))
             if self.text is not None:
                 equal = equal and self.text == other.text

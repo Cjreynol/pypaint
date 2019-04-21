@@ -56,10 +56,10 @@ class Controller(ControllerBase):
         Thread(target = f).start()
 
     def start(self):
-        super().start()
         self.current_view.start_processing_draw_queue()
         # TODO CJR:  find a better place for this
         self.window.root.bind("<Key>", self.handle_event)
+        super().start() # must be called at the end, starts the GUI loop
 
     def stop(self):
         super().stop()
@@ -111,6 +111,7 @@ class Controller(ControllerBase):
             event_coords = event.x, event.y
             self._create_drawing(self.application_state.current_type, 
                                     self.application_state.current_thickness, 
+                                    self.application_state.current_color,
                                     self.application_state.start_pos 
                                         + event_coords)
 
@@ -132,6 +133,7 @@ class Controller(ControllerBase):
             and self.application_state.current_type != DrawingType.TEXT):
             self._create_drawing(self.application_state.current_type, 
                                     self.application_state.current_thickness, 
+                                    self.application_state.current_color,
                                     self.application_state.start_pos 
                                         + (event.x, event.y))
         self.application_state.clear_drawing_state()
@@ -150,19 +152,21 @@ class Controller(ControllerBase):
         """
         self._create_drawing(DrawingType.TEXT, 
                                 self.application_state.current_thickness, 
+                                self.application_state.current_color,
                                 coords, text[:self.TEXT_SIZE_LIMIT])
 
     def create_clear(self):
-        self._create_drawing(DrawingType.CLEAR, 0, (0, 0, 0, 0))
+        self._create_drawing(DrawingType.CLEAR, 0, "", (0, 0, 0, 0))
 
     def create_undo(self):
-        self._create_drawing(DrawingType.UNDO, 0, (0, 0, 0, 0))
+        self._create_drawing(DrawingType.UNDO, 0, "", (0, 0, 0, 0))
 
-    def _create_drawing(self, drawing_type, thickness, coords, text = None):
+    def _create_drawing(self, drawing_type, thickness, color, coords, 
+                        text = None):
         """
         Create, draw, and queue up the drawing to send out.
         """
-        drawing = Drawing(drawing_type, thickness, coords, text)
+        drawing = Drawing(drawing_type, thickness, color, coords, text)
         self.application_state.add_to_draw_queue(drawing)
 
         encoded_drawing = drawing.encode()

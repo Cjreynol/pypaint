@@ -1,7 +1,7 @@
 from tkinter        import (Button, Label, Scale, 
                             BOTTOM, HORIZONTAL, RAISED, SUNKEN)
 
-from chadlib.gui    import View
+from chadlib.gui    import ColorPickerDialog, View
 
 from .drawing_type  import DrawingType
 
@@ -23,6 +23,8 @@ class Toolbar(View):
                                 if not DrawingType.has_no_location(draw_type) }
         self.buttons[self.application_state.current_type]["relief"] = SUNKEN
 
+        self.color_picker = Button(self, text = (" " * 30),
+                            background = self.application_state.current_color)
         self.thickness_label = Label(self, text = "Thickness")
         self.thickness_scale = Scale(self, orient = HORIZONTAL, 
                                 from_ = self.application_state.THICKNESS_MIN,
@@ -35,6 +37,7 @@ class Toolbar(View):
         for button in self.buttons.values():
             button.pack()
 
+        self.color_picker.pack()
         self.thickness_label.pack()
         self.thickness_scale.pack()
 
@@ -45,7 +48,9 @@ class Toolbar(View):
         for draw_type, button in self.buttons.items():
             button["command"] = self._draw_button_callback(draw_type)
 
+        self.color_picker["command"] = self._choose_color
         self.thickness_scale["command"] = self._thickness_callback
+
         self.undo_button["command"] = self.controller.create_undo
         self.clear_button["command"] = self.controller.create_clear
 
@@ -58,3 +63,9 @@ class Toolbar(View):
             self.application_state.current_type = drawing_type
             self.buttons[self.application_state.current_type]["relief"] = SUNKEN
         return f
+    
+    def _choose_color(self):
+        def f(color):
+            self.application_state.current_color = color
+            self.color_picker["background"] = self.application_state.current_color
+        ColorPickerDialog(f)
