@@ -1,6 +1,8 @@
-from queue      import Queue
+from queue              import Queue
 
-from .drawing_type  import DrawingType
+from chadlib.collection import Stack
+
+from .drawing_type      import DrawingType
 
 
 class PaintState:
@@ -13,17 +15,18 @@ class PaintState:
         self.current_thickness = self.THICKNESS_MIN
 
         self.start_pos = None
-        self.last_drawing_id = None
+        self.drawing_ids = Stack()
 
         self.send_queue = Queue()
         self.receive_queue = Queue()
         self.draw_queue = Queue()
 
         self.active = True
+        self.dragging = False
 
     def clear_drawing_state(self):
         self.start_pos = None
-        self.last_drawing_id = None
+        self.dragging = False
 
     def add_to_send_queue(self, data):
         """
@@ -31,3 +34,19 @@ class PaintState:
         not added to the queue on start up?
         """
         self.send_queue.put(data)
+
+    @property
+    def id_available(self):
+        return not self.drawing_ids.is_empty
+
+    def add_to_draw_queue(self, data):
+        self.draw_queue.put(data)
+
+    def get_last_drawing_id(self):
+        return self.drawing_ids.pop()
+
+    def add_last_drawing_id(self, value):
+        self.drawing_ids.push(value)
+
+    def clear_drawing_ids(self):
+        self.drawing_ids.clear()

@@ -35,10 +35,8 @@ class TestController(TestCase):
     def test_handle_motion_not_draggable(self):
         self.test_event.type = Controller.MOTION
         self.state.start_pos = self.default_pos    # not None
-        self.controller._enqueue = MagicMock()
         self.controller.handle_event(self.test_event)
 
-        self.controller._enqueue.assert_called_once()
         self.assertEqual((self.test_event.x, self.test_event.y), 
                             self.state.start_pos)
 
@@ -56,7 +54,7 @@ class TestController(TestCase):
         self.test_event.type = Controller.MOTION
         self.controller.handle_event(self.test_event)
 
-        self.assertIsNone(self.state.last_drawing_id)
+        self.assertIsNone(self.state.start_pos)
 
     def test_all_events_all_drawing_modes(self):
         self.controller._enqueue = MagicMock()

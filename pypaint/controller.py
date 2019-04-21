@@ -27,6 +27,8 @@ class Controller(ControllerBase):
         super().__init__("PyPaint", application_state, PaintView)
         self.connection = Connection(self.application_state.send_queue, 
                                         self.application_state.receive_queue)
+        # TODO CJR:  find a better place for this
+        self.window.root.bind("<Key>", self.handle_event)
 
     def startup_listening(self):
         self.connection.startup_accept(self.DEFAULT_PORT, 
@@ -52,23 +54,15 @@ class Controller(ControllerBase):
                 data = self.application_state.receive_queue.get()
                 if data is not None:
                     for drawing in Drawing.decode_drawings(data):
-                        self.application_state.draw_queue.put(drawing)
+                        self.application_state.add_to_draw_queue(drawing)
         Thread(target = f).start()
 
     def stop(self):
         super().stop()
         self.connection.close()
-        self.application_state.receive_queue.put(None)    # release the decoding thread
-        self.application_state.draw_queue.put(None)       # release the drawing thread
+        self.application_state.receive_queue.put(None)  # release decoding thread
+        self.application_state.add_to_draw_queue(None)  # release drawing thread
         self.application_state.active = False
-
-    def _enqueue(self, drawing):
-        """
-        Encode the drawing as bytes and put it in the send queue.
-        """
-        encoded_drawing = drawing.encode()
-        if encoded_drawing is not None:
-            self.application_state.add_to_send_queue(encoded_drawing)
 
     def handle_event(self, event):
         """
@@ -89,50 +83,40 @@ class Controller(ControllerBase):
         the current drawing mode.
         """
         self.application_state.start_pos = event.x, event.y
-        if self.application_state.current_type == DrawingType.TEXT:
+        if self.application_state.current_type is DrawingType.TEXT:
             self.current_view.create_text_entry(
                                             self.application_state.start_pos 
                                                 + (0, 0))
 
     def _handle_motion_event(self, event):
         """
-        If a motion-based drawing is in progress then create a new drawing 
-        and either:
-            -enqueue it if the drawing is not draggable
-            -delete the last intermediate drawing if it is
         """
         if (self.application_state.start_pos is not None 
                 and DrawingType.is_motion_related(
                                         self.application_state.current_type)):
+            if self.application_state.dragging:
+                self.create_undo()
             event_coords = event.x, event.y
-            drawing = Drawing(self.application_state.current_type, 
-                                self.application_state.current_thickness, 
-                                self.application_state.start_pos 
-                                    + event_coords)
-            drawing_id = self.current_view.draw_shape(drawing)
+            self._create_drawing(self.application_state.current_type, 
+                                    self.application_state.current_thickness, 
+                                    self.application_state.start_pos 
+                                        + event_coords)
 
             if not DrawingType.is_draggable(
                                         self.application_state.current_type):
-                self._enqueue(drawing)
                 self.application_state.start_pos = event_coords
-            else:
-                self.current_view.clear_drawing_by_id(
-                                        self.application_state.last_drawing_id)
-
-            self.application_state.last_drawing_id = drawing_id
+            else:   # used to start undoing on the second motion event
+                self.application_state.dragging = True
 
     def _handle_button_release_event(self, event):
         """
-        Clear the last drawing if it was draggable, draw the final version, 
-        and clear the drawing state information.
         """
         if DrawingType.is_draggable(self.application_state.current_type):
-            self.current_view.clear_drawing_by_id(
-                                        self.application_state.last_drawing_id)
+            self.create_undo()
 
         if (self.application_state.start_pos is not None
             and self.application_state.current_type != DrawingType.TEXT):
-                self._create_drawing(self.application_state.current_type, 
+            self._create_drawing(self.application_state.current_type, 
                                     self.application_state.current_thickness, 
                                     self.application_state.start_pos 
                                         + (event.x, event.y))
@@ -143,8 +127,7 @@ class Controller(ControllerBase):
         Cancel current drawing when Escape key is pressed.
         """
         if event.keysym == "Escape":
-            self.current_view.clear_drawing_by_id(
-                                        self.application_state.last_drawing_id)
+            self.create_undo()
             self.application_state.clear_drawing_state()
 
     def create_text(self, text, coords):
@@ -155,19 +138,24 @@ class Controller(ControllerBase):
                                 self.application_state.current_thickness, 
                                 coords, text[:self.TEXT_SIZE_LIMIT])
 
-    def clear_callback(self):
-        """
-        Clear the drawing canvas.
-        """
+    def create_clear(self):
         self._create_drawing(DrawingType.CLEAR, 0, (0, 0, 0, 0))
+
+    def create_undo(self):
+        self._create_drawing(DrawingType.UNDO, 0, (0, 0, 0, 0))
 
     def _create_drawing(self, drawing_type, thickness, coords, text = None):
         """
         Create, draw, and queue up the drawing to send out.
         """
         drawing = Drawing(drawing_type, thickness, coords, text)
-        self.current_view.draw_shape(drawing)
-        self._enqueue(drawing)
+        drawing_id = self.current_view.draw_shape(drawing)
+        if drawing_id is not None:
+            self.application_state.add_last_drawing_id(drawing_id)
+
+        encoded_drawing = drawing.encode()
+        if encoded_drawing is not None:
+            self.application_state.add_to_send_queue(encoded_drawing)
 
     def get_menu_data(self):
         """

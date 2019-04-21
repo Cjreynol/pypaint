@@ -25,7 +25,9 @@ class PaintView(View):
             while self.application_state.active:
                 drawing = self.application_state.draw_queue.get()
                 if drawing is not None:
-                    self.draw_shape(drawing)
+                    drawing_id = self.draw_shape(drawing)
+                    if drawing_id is not None:
+                        self.application_state.add_last_drawing_id(drawing_id)
         Thread(target = f).start()
 
     def draw_shape(self, drawing):
@@ -33,37 +35,34 @@ class PaintView(View):
         Call the appropriate draw call based on the drawing type
         """
         drawing_id = None
-        if drawing.shape == DrawingType.PEN:
+        if drawing.shape is DrawingType.PEN:
             drawing_id = self.canvas.draw_line(drawing.coords, 
                                                 drawing.thickness)
-        elif drawing.shape == DrawingType.RECT:
+        elif drawing.shape is DrawingType.RECT:
             drawing_id = self.canvas.draw_rect(drawing.coords, 
                                                 drawing.thickness)
-        elif drawing.shape == DrawingType.OVAL:
+        elif drawing.shape is DrawingType.OVAL:
             drawing_id = self.canvas.draw_oval(drawing.coords, 
                                                 drawing.thickness)
-        elif drawing.shape == DrawingType.LINE:
+        elif drawing.shape is DrawingType.LINE:
             drawing_id = self.canvas.draw_line(drawing.coords, 
                                                 drawing.thickness)
-        elif drawing.shape == DrawingType.ERASER:
+        elif drawing.shape is DrawingType.ERASER:
             drawing_id = self.canvas.draw_eraser_line(drawing.coords, 
                                                         drawing.thickness)
-        elif drawing.shape == DrawingType.PING:
+        elif drawing.shape is DrawingType.PING:
             drawing_id = self.canvas.draw_ping(drawing.coords, 
                                                 drawing.thickness)
-        elif drawing.shape == DrawingType.CLEAR:
-            drawing_id = self.canvas.clear_canvas()
-        elif drawing.shape == DrawingType.TEXT:
+        elif drawing.shape is DrawingType.CLEAR:
+            self.canvas.clear_canvas()
+        elif drawing.shape is DrawingType.TEXT:
             drawing_id = self.canvas.draw_text(drawing.coords, 
                                                 drawing.thickness, 
                                                 drawing.text)
+        elif drawing.shape is DrawingType.UNDO:
+            self.canvas.undo()
+            
         return drawing_id
-
-    def clear_drawing_by_id(self, drawing_id):
-        """
-        Delete the drawing with the given id from the canvas.
-        """
-        self.canvas.clear_drawing_by_id(drawing_id)
 
     def create_text_entry(self, coords):
         TextEntryDialog("Enter text to display", self.controller.create_text, 
