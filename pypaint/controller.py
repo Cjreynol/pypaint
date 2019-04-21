@@ -27,28 +27,26 @@ class Controller(ControllerBase):
         super().__init__("PyPaint", application_state, PaintView)
         self.connection = Connection(self.application_state.send_queue, 
                                         self.application_state.receive_queue)
-        self.current_view.start_processing_draw_queue()
-        # TODO CJR:  find a better place for this
-        self.window.root.bind("<Key>", self.handle_event)
 
     def startup_listening(self):
         self.connection.startup_accept(self.DEFAULT_PORT, 
-                                        self.start_processing)
+                                        self.start_processing_receive_queue)
 
-    def get_ip(self):
-        TextEntryDialog("Enter IP address of host", self.startup_connect, None)
+    def startup_connect(self, ip_address):
+        self.connection.startup_connect(self.DEFAULT_PORT, ip_address,
+                                        self.start_processing_receive_queue)
 
     def disconnect(self):
         self.connection.close()
 
-    def startup_connect(self, ip_address):
-        self.connection.startup_connect(self.DEFAULT_PORT, ip_address,
-                                        self.start_processing)
-
-    def start_processing(self):
-        self.start_processing_receive_queue()
+    def get_ip(self):
+        TextEntryDialog("Enter IP address of host", self.startup_connect, None)
 
     def start_processing_receive_queue(self):
+        """
+        Start up the thread to decode drawings and put them on the drawing 
+        queue.
+        """
         def f():
             while self.application_state.active:
                 data = self.application_state.receive_queue.get()
@@ -56,6 +54,12 @@ class Controller(ControllerBase):
                     for drawing in Drawing.decode_drawings(data):
                         self.application_state.add_to_draw_queue(drawing)
         Thread(target = f).start()
+
+    def start(self):
+        super().start()
+        self.current_view.start_processing_draw_queue()
+        # TODO CJR:  find a better place for this
+        self.window.root.bind("<Key>", self.handle_event)
 
     def stop(self):
         super().stop()
@@ -90,6 +94,14 @@ class Controller(ControllerBase):
 
     def _handle_motion_event(self, event):
         """
+        Create a new drawing if it triggers off of motion events.
+
+        If this is the first motion event since a button press, trigger the 
+        dragging state so that undos are created for the following motion 
+        events.
+
+        If it is not a draggable shape, then reset the start position for the 
+        next drawing.
         """
         if (self.application_state.start_pos is not None 
                 and DrawingType.is_motion_related(
@@ -110,6 +122,8 @@ class Controller(ControllerBase):
 
     def _handle_button_release_event(self, event):
         """
+        Create the final drawing in the sequence, undoing the last one if 
+        necessary, and clearing the drawing state.
         """
         if DrawingType.is_draggable(self.application_state.current_type):
             self.create_undo()
@@ -161,7 +175,7 @@ class Controller(ControllerBase):
         """
         menu_setup = super().get_menu_data()
         menu_setup.add_submenu_items("Network", 
-                                        [("Host", self.startup_listening),
-                                        ("Connect", self.get_ip),
-                                        ("Disconnect", self.disconnect)])
+                            [("Host", self.startup_listening, "Alt-h"),
+                            ("Connect", self.get_ip, "Alt-c"),
+                            ("Disconnect", self.disconnect, "Alt-d")])
         return menu_setup
