@@ -27,6 +27,7 @@ class Controller(ControllerBase):
         super().__init__("PyPaint", application_state, PaintView)
         self.connection = Connection(self.application_state.send_queue, 
                                         self.application_state.receive_queue)
+        self.current_view.start_processing_draw_queue()
         # TODO CJR:  find a better place for this
         self.window.root.bind("<Key>", self.handle_event)
 
@@ -46,7 +47,6 @@ class Controller(ControllerBase):
 
     def start_processing(self):
         self.start_processing_receive_queue()
-        self.current_view.start_processing_draw_queue()
 
     def start_processing_receive_queue(self):
         def f():
@@ -149,9 +149,7 @@ class Controller(ControllerBase):
         Create, draw, and queue up the drawing to send out.
         """
         drawing = Drawing(drawing_type, thickness, coords, text)
-        drawing_id = self.current_view.draw_shape(drawing)
-        if drawing_id is not None:
-            self.application_state.add_last_drawing_id(drawing_id)
+        self.application_state.add_to_draw_queue(drawing)
 
         encoded_drawing = drawing.encode()
         if encoded_drawing is not None:
