@@ -14,6 +14,10 @@ class Controller(ControllerBase):
     Manages the interface event handling and the network connection.
     """
 
+    APPLICATION_NAME = "PyPaint"
+    FILE_EXTENSION = ".pypaint"
+    FILETYPES = (("pypaint files", "*" + FILE_EXTENSION),)
+
     DEFAULT_PORT = 2423
     TEXT_SIZE_LIMIT = 128
 
@@ -24,7 +28,7 @@ class Controller(ControllerBase):
     KEYPRESS = '2'
 
     def __init__(self, application_state):
-        super().__init__("PyPaint", application_state, PaintView)
+        super().__init__(application_state, PaintView)
         self.connection = Connection(self.application_state.send_queue, 
                                         self.application_state.receive_queue)
 
@@ -183,3 +187,18 @@ class Controller(ControllerBase):
                             ("Connect", self.get_ip, "Alt-c"),
                             ("Disconnect", self.disconnect, "Alt-d")])
         return menu_setup
+
+    def _save_logic(self, filename):
+        with open(filename, "wb") as cur_file:
+            # TODO CJR:  remove undos and the drawings prior to them
+            data = b''.join([drawing.encode() for drawing in 
+                                    self.application_state.drawing_history
+                                    if drawing.shape is not DrawingType.PING])
+            cur_file.write(data)
+
+    def _open_logic(self, filename):
+        with open(filename, "rb") as cur_file:
+            data = cur_file.read()
+            for drawing in Drawing.decode_drawings(data):
+                self.application_state.add_to_draw_queue(drawing)
+                self.application_state.add_to_send_queue(drawing)
