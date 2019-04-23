@@ -22,7 +22,7 @@ class PaintView(View):
 
     def start_processing_draw_queue(self):
         def f():
-            while self.application_state.active:
+            while self.application_state.draw_active:
                 drawing = self.application_state.draw_queue.get()
                 if drawing is not None:
                     drawing_id = self.draw_shape(drawing)

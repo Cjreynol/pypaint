@@ -33,10 +33,12 @@ class Controller(ControllerBase):
                                         self.application_state.receive_queue)
 
     def startup_listening(self):
+        self.application_state.active = True
         self.connection.startup_accept(self.DEFAULT_PORT, 
                                         self.start_processing_receive_queue)
 
     def startup_connect(self, ip_address):
+        self.application_state.active = True
         self.connection.startup_connect(self.DEFAULT_PORT, ip_address,
                                         self.start_processing_receive_queue)
 
@@ -71,6 +73,7 @@ class Controller(ControllerBase):
         self.application_state.receive_queue.put(None)  # release decoding thread
         self.application_state.add_to_draw_queue(None)  # release drawing thread
         self.application_state.active = False
+        self.application_state.draw_active = False
 
     def handle_event(self, event):
         """
@@ -198,6 +201,7 @@ class Controller(ControllerBase):
 
     def _open_logic(self, filename):
         with open(filename, "rb") as cur_file:
+            self.create_clear() # clear the canvas when loading a file
             data = cur_file.read()
             for drawing in Drawing.decode_drawings(data):
                 self.application_state.add_to_draw_queue(drawing)

@@ -23,7 +23,8 @@ class PaintState:
         self.receive_queue = Queue()
         self.draw_queue = Queue()
 
-        self.active = True
+        self.draw_active = True
+        self.active = False
         self.dragging = False
 
     def clear_drawing_state(self):
@@ -31,11 +32,8 @@ class PaintState:
         self.dragging = False
 
     def add_to_send_queue(self, data):
-        """
-        TODO CJR: Should there be a conditional on this so that things are 
-        not added to the queue on start up?
-        """
-        self.send_queue.put(data)
+        if self.active:
+            self.send_queue.put(data)
 
     @property
     def id_available(self):
