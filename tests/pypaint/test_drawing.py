@@ -7,8 +7,8 @@ from pypaint.drawing_type   import DrawingType
 class TestDrawing(TestCase):
     
     def setUp(self):
-        self.drawing = Drawing(DrawingType.RECT, 0, [0, 0, 1, 1])
-        self.text_drawing = Drawing(DrawingType.TEXT, 0, [0, 0, 0, 0], "testing")
+        self.drawing = Drawing(DrawingType.RECT, 0, "#000000", [0, 0, 1, 1])
+        self.text_drawing = Drawing(DrawingType.TEXT, 0, "#000000", [0, 0, 0, 0], "testing")
 
     def test_encoding_decoding_are_equal(self):
         bytes_array = self.drawing.encode()

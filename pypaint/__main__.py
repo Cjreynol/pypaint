@@ -4,7 +4,7 @@ from .controller    import Controller
 from .paint_state   import PaintState
 
 
-__version__ = "2.0.2"
+__version__ = "2.0.3"
 
 LOG_FORMAT = "%(asctime)s::%(name)s::%(levelname)s::%(message)s"
 TIMESTAMP_FORMAT = "%H:%M:%S"
@@ -27,4 +27,4 @@ def main(debug_level):
     controller.start()
 
 if __name__ == "__main__":
-    main(INFO)
+    main(DEBUG)

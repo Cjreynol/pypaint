@@ -1,3 +1,4 @@
+from logging            import getLogger
 from threading          import Thread
 from tkinter            import BOTH, LEFT, RIGHT
 
@@ -22,12 +23,14 @@ class PaintView(View):
 
     def start_processing_draw_queue(self):
         def f():
+            getLogger(__name__).debug("Draw thread starting.")
             while self.application_state.draw_active:
                 drawing = self.application_state.draw_queue.get()
                 if drawing is not None:
                     drawing_id = self.draw_shape(drawing)
                     if drawing_id is not None:
                         self.application_state.add_last_drawing_id(drawing_id)
+            getLogger(__name__).debug("Draw thread done.")
         Thread(target = f).start()
 
     def draw_shape(self, drawing):
@@ -68,6 +71,8 @@ class PaintView(View):
                                                 drawing.text)
         elif drawing.shape is DrawingType.UNDO:
             self.canvas.undo()
+        elif drawing.shape is DrawingType.SYNC:
+            pass
             
         return drawing_id
 

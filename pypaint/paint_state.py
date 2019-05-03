@@ -52,3 +52,8 @@ class PaintState:
     def clear_drawing_ids(self):
         self.drawing_history = []
         self.drawing_ids.clear()
+
+    def stop(self):
+        self.draw_active = False
+        self.active = False
+        self.add_to_draw_queue(None)  # release drawing thread

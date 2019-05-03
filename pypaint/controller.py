@@ -1,24 +1,15 @@
-from threading          import Thread
-from tkinter            import Toplevel
-
-from chadlib.gui        import ControllerBase, TextEntryDialog
-from chadlib.io         import Connection
+from chadlib.gui        import ConnController, SLController
 
 from .drawing           import Drawing
 from .drawing_type      import DrawingType
 from .paint_view        import PaintView
 
 
-class Controller(ControllerBase):
+class Controller(ConnController, SLController):
     """
     Manages the interface event handling and the network connection.
     """
 
-    APPLICATION_NAME = "PyPaint"
-    FILE_EXTENSION = ".pypaint"
-    FILETYPES = (("pypaint files", "*" + FILE_EXTENSION),)
-
-    DEFAULT_PORT = 2423
     TEXT_SIZE_LIMIT = 128
 
     # aliases for tkinter event types
@@ -28,38 +19,22 @@ class Controller(ControllerBase):
     KEYPRESS = '2'
 
     def __init__(self, application_state):
-        super().__init__(application_state, PaintView)
-        self.connection = Connection(self.application_state.send_queue, 
-                                        self.application_state.receive_queue)
+        FILE_EXTENSION = ".pypaint"
+        super().__init__(2423, 
+                        application_state.send_queue, 
+                        application_state.receive_queue,
+                        FILE_EXTENSION, 
+                        (("pypaint files", "*" + FILE_EXTENSION),), 
+                        "PyPaint", 
+                        application_state, 
+                        PaintView)
 
-    def startup_listening(self):
-        self.application_state.active = True
-        self.connection.startup_accept(self.DEFAULT_PORT, 
-                                        self.start_processing_receive_queue)
-
-    def startup_connect(self, ip_address):
-        self.application_state.active = True
-        self.connection.startup_connect(self.DEFAULT_PORT, ip_address,
-                                        self.start_processing_receive_queue)
-
-    def disconnect(self):
-        self.connection.close()
-
-    def get_ip(self):
-        TextEntryDialog("Enter IP address of host", self.startup_connect, None)
-
-    def start_processing_receive_queue(self):
-        """
-        Start up the thread to decode drawings and put them on the drawing 
-        queue.
-        """
-        def f():
-            while self.application_state.active:
-                data = self.application_state.receive_queue.get()
-                if data is not None:
-                    for drawing in Drawing.decode_drawings(data):
-                        self.application_state.add_to_draw_queue(drawing)
-        Thread(target = f).start()
+    def process_received_data(self, data):
+        for drawing in Drawing.decode_drawings(data):
+            if drawing.shape is not DrawingType.SYNC:
+                self.application_state.add_to_draw_queue(drawing)
+            else:# if a sync was received, trigger sending history
+                self._sync_to_connected()
 
     def start(self):
         self.current_view.start_processing_draw_queue()
@@ -68,12 +43,12 @@ class Controller(ControllerBase):
         super().start() # must be called at the end, starts the GUI loop
 
     def stop(self):
+        self.application_state.stop()
         super().stop()
-        self.connection.close()
-        self.application_state.receive_queue.put(None)  # release decoding thread
-        self.application_state.add_to_draw_queue(None)  # release drawing thread
+
+    def disconnect(self):
         self.application_state.active = False
-        self.application_state.draw_active = False
+        super().disconnect()
 
     def handle_event(self, event):
         """
@@ -153,6 +128,12 @@ class Controller(ControllerBase):
             self.create_undo()
             self.application_state.clear_drawing_state()
 
+    def get_menu_data(self):
+        menu_setup = super().get_menu_data()
+        menu_setup.add_submenu_item("Network", "Sync Canvas", 
+                                    self.create_sync, "Alt-s")
+        return menu_setup
+
     def create_text(self, text, coords):
         """
         A specialized version of _create_drawing for use by the text tool.
@@ -168,6 +149,9 @@ class Controller(ControllerBase):
     def create_undo(self):
         self._create_drawing(DrawingType.UNDO, 0, "", (0, 0, 0, 0))
 
+    def create_sync(self):
+        self._create_drawing(DrawingType.SYNC, 0, "", (0, 0, 0, 0))
+
     def _create_drawing(self, drawing_type, thickness, color, coords, 
                         text = None):
         """
@@ -180,18 +164,10 @@ class Controller(ControllerBase):
         if encoded_drawing is not None:
             self.application_state.add_to_send_queue(encoded_drawing)
 
-    def get_menu_data(self):
-        """
-        Get the default menu setup data, add network control commands.
-        """
-        menu_setup = super().get_menu_data()
-        menu_setup.add_submenu_items("Network", 
-                            [("Host", self.startup_listening, "Alt-h"),
-                            ("Connect", self.get_ip, "Alt-c"),
-                            ("Disconnect", self.disconnect, "Alt-d")])
-        return menu_setup
-
     def _save_logic(self, filename):
+        """
+        Encode the entire drawing history and write it to the given file.
+        """
         with open(filename, "wb") as cur_file:
             # TODO CJR:  remove undos and the drawings prior to them
             data = b''.join([drawing.encode() for drawing in 
@@ -200,9 +176,29 @@ class Controller(ControllerBase):
             cur_file.write(data)
 
     def _open_logic(self, filename):
+        """
+        Clear the current canvas, then decode the drawing data from the file, 
+        and put it on the draw queue to be drawn.
+        """
         with open(filename, "rb") as cur_file:
-            self.create_clear() # clear the canvas when loading a file
+            self.application_state.add_to_draw_queue(self._create_clear())
             data = cur_file.read()
             for drawing in Drawing.decode_drawings(data):
                 self.application_state.add_to_draw_queue(drawing)
-                self.application_state.add_to_send_queue(drawing)
+
+    def _sync_to_connected(self):
+        """
+        Enqueue the entire drawing history to send to connected application.
+
+        Put a clear at the front to clear their canvas before updating them 
+        with the history.
+        """
+        self.application_state.add_to_send_queue(self._create_clear().encode())
+        for drawing in self.application_state.drawing_history:
+            if drawing.shape not in {DrawingType.PING, DrawingType.SYNC}:
+                encoded_drawing = drawing.encode()
+                if encoded_drawing is not None:
+                    self.application_state.add_to_send_queue(encoded_drawing)
+
+    def _create_clear(self):
+        return Drawing(DrawingType.CLEAR, 0, "", (0, 0, 0, 0))

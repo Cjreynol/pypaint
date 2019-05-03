@@ -10,7 +10,8 @@ class Drawing:
     sending/receiving over a network.
     """
 
-    # shape, thickness, # + 6 hex digits for color, 4 coord values, text length
+    # shape, thickness, # char + 6 hex digits for color, 4 coord values, 
+    # text length
     MSG_PACK_STR = "iI7s4iI"      
     MSG_SIZE = calcsize(MSG_PACK_STR)
 

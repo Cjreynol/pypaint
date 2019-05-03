@@ -13,6 +13,7 @@ class DrawingType(Enum):
     PING = auto()
     TEXT = auto()
     UNDO = auto()
+    SYNC = auto()
 
     def __str__(self):
         return self.name.capitalize()
@@ -30,4 +31,5 @@ class DrawingType(Enum):
 
     @staticmethod
     def has_no_location(drawing_type):
-        return drawing_type in {DrawingType.CLEAR, DrawingType.UNDO}
+        return drawing_type in {DrawingType.CLEAR, DrawingType.UNDO, 
+                                DrawingType.SYNC}
