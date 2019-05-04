@@ -42,12 +42,15 @@ class Controller(ConnController, SLController):
         self.window.root.bind("<Key>", self.handle_event)
         super().start() # must be called at the end, starts the GUI loop
 
+    def connection_start(self):
+        self.application_state.send_active = True
+
     def stop(self):
         self.application_state.stop()
         super().stop()
 
     def disconnect(self):
-        self.application_state.active = False
+        self.application_state.send_active = False
         super().disconnect()
 
     def handle_event(self, event):

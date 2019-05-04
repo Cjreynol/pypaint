@@ -24,7 +24,7 @@ class PaintState:
         self.draw_queue = Queue()
 
         self.draw_active = True
-        self.active = False
+        self.send_active = False
         self.dragging = False
 
     def clear_drawing_state(self):
@@ -32,7 +32,7 @@ class PaintState:
         self.dragging = False
 
     def add_to_send_queue(self, data):
-        if self.active:
+        if self.send_active:
             self.send_queue.put(data)
 
     @property
@@ -55,5 +55,5 @@ class PaintState:
 
     def stop(self):
         self.draw_active = False
-        self.active = False
+        self.send_active = False
         self.add_to_draw_queue(None)  # release drawing thread
