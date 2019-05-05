@@ -4,7 +4,7 @@ from .controller    import Controller
 from .paint_state   import PaintState
 
 
-__version__ = "2.0.4"
+__version__ = "2.0.5"
 
 LOG_FORMAT = "%(asctime)s::%(name)s::%(levelname)s::%(message)s"
 TIMESTAMP_FORMAT = "%H:%M:%S"

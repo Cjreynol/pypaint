@@ -1,11 +1,12 @@
-from chadlib.gui        import ConnController, SLController
+from chadlib.gui        import (ConnComponent, ConnController, ControllerBase, 
+                                SLComponent, SLController)
 
 from .drawing           import Drawing
 from .drawing_type      import DrawingType
 from .paint_view        import PaintView
 
 
-class Controller(ConnController, SLController):
+class Controller(ConnController, SLController, ControllerBase):
     """
     Manages the interface event handling and the network connection.
     """
@@ -20,14 +21,15 @@ class Controller(ConnController, SLController):
 
     def __init__(self, application_state):
         FILE_EXTENSION = ".pypaint"
-        super().__init__(2423, 
-                        application_state.send_queue, 
-                        application_state.receive_queue,
-                        FILE_EXTENSION, 
-                        (("pypaint files", "*" + FILE_EXTENSION),), 
-                        "PyPaint", 
-                        application_state, 
-                        PaintView)
+        APPLICATION_NAME = "PyPaint"
+        self.sl_component = SLComponent(self, FILE_EXTENSION, 
+                                    (("pypaint files", "*" + FILE_EXTENSION),), 
+                                    APPLICATION_NAME)
+        self.conn_component = ConnComponent(self, 2423, 
+                                            application_state.send_queue, 
+                                            application_state.receive_queue)
+
+        super().__init__("PyPaint", application_state, PaintView)
 
     def process_received_data(self, data):
         for drawing in Drawing.decode_drawings(data):
@@ -47,11 +49,12 @@ class Controller(ConnController, SLController):
 
     def stop(self):
         self.application_state.stop()
+        self.conn_component.stop()
         super().stop()
 
     def disconnect(self):
         self.application_state.send_active = False
-        super().disconnect()
+        self.conn_component.disconnect()
 
     def handle_event(self, event):
         """
@@ -133,6 +136,8 @@ class Controller(ConnController, SLController):
 
     def get_menu_data(self):
         menu_setup = super().get_menu_data()
+        menu_setup = self.sl_component.get_menu_data(menu_setup)
+        menu_setup = self.conn_component.get_menu_data(menu_setup)
         menu_setup.add_submenu_item("Network", "Sync Canvas", 
                                     self.create_sync, "Alt-s")
         return menu_setup
@@ -167,7 +172,7 @@ class Controller(ConnController, SLController):
         if encoded_drawing is not None:
             self.application_state.add_to_send_queue(encoded_drawing)
 
-    def _save_logic(self, filename):
+    def save_logic(self, filename):
         """
         Encode the entire drawing history and write it to the given file.
         """
@@ -178,7 +183,7 @@ class Controller(ConnController, SLController):
                                     if drawing.shape is not DrawingType.PING])
             cur_file.write(data)
 
-    def _open_logic(self, filename):
+    def open_logic(self, filename):
         """
         Clear the current canvas, then decode the drawing data from the file, 
         and put it on the draw queue to be drawn.
