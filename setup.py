@@ -1,15 +1,15 @@
 from setuptools import setup, find_packages
 
-from main import __version__
+from main       import APPLICATION_DESCRIPTION, APPLICATION_NAME, VERSION
 
 
 with open("README.md") as f:
     long_description = f.read()
 
 setup(  
-    name = "pypaint",
-    version = __version__,
-    description = "A simple drawing tool that allows remote collaboration",
+    name = APPLICATION_NAME,
+    version = VERSION,
+    description = APPLICATION_DESCRIPTION,
     long_description = long_description,
     long_description_content_type='text/markdown',
     author = "Chad Reynolds",
@@ -32,7 +32,7 @@ setup(
         ],
     keywords = "drawing collaboration paint",
     install_requires = [
-        "chadlib>=0.2.10"
+        "chadlib>=0.2.11"
     ],
     python_requires = ">=3",
     py_modules = ["main"],
