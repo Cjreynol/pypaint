@@ -11,7 +11,7 @@ class TestController(TestCase):
     
     def setUp(self):
         self.state = PaintState()
-        self.controller = Controller(self.state)
+        self.controller = Controller("", self.state)
         self.controller.window.root = MagicMock()   # supress window pop-up
         self.test_event = MagicMock(type = Controller.BUTTON_PRESS, 
                                     x = 2, y = 3, keysym = "Escape")

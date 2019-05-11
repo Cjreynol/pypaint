@@ -28,10 +28,14 @@ class PaintView(View):
                 drawing = self.application_state.draw_queue.get()
                 if drawing is not None:
                     drawing_id = self.draw_shape(drawing)
-                    if drawing_id is not None:
-                        self.application_state.add_last_drawing_id(drawing_id)
+                    self.application_state.add_last_drawing(drawing_id, 
+                                                            drawing)
             getLogger(__name__).debug("Draw thread done.")
         Thread(target = f).start()
+
+    def create_text_entry(self, coords):
+        TextEntryDialog("Enter text to display", self.controller.create_text, 
+                        coords)
 
     def draw_shape(self, drawing):
         """
@@ -75,7 +79,3 @@ class PaintView(View):
             pass
             
         return drawing_id
-
-    def create_text_entry(self, coords):
-        TextEntryDialog("Enter text to display", self.controller.create_text, 
-                        coords)

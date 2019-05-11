@@ -40,14 +40,22 @@ class PaintState:
         return not self.drawing_ids.is_empty
 
     def add_to_draw_queue(self, drawing):
-        self.drawing_history.append(drawing)
         self.draw_queue.put(drawing)
 
     def get_last_drawing_id(self):
         return self.drawing_ids.pop()
 
-    def add_last_drawing_id(self, value):
-        self.drawing_ids.push(value)
+    def add_last_drawing(self, id_value, drawing):
+        if id_value is not None:
+            self.drawing_ids.push(id_value)
+
+        if drawing is not None:
+            if drawing.shape is DrawingType.UNDO and self.drawing_history:
+                self.drawing_history.pop()
+            elif drawing.shape is DrawingType.UNDO:
+                self.clear_drawing_ids()
+            elif drawing.shape is not DrawingType.PING:
+                self.drawing_history.append(drawing)
 
     def clear_drawing_ids(self):
         self.drawing_history = []

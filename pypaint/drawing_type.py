@@ -4,14 +4,17 @@ from enum import Enum, auto, unique
 @unique
 class DrawingType(Enum):
     
+    # drawings
     PEN = auto()
     RECT = auto()
     OVAL = auto()
     LINE = auto()
     ERASER = auto()
-    CLEAR = auto()
-    PING = auto()
     TEXT = auto()
+
+    # utilities
+    PING = auto()
+    CLEAR = auto()
     UNDO = auto()
     SYNC = auto()
 

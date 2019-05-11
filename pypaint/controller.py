@@ -1,4 +1,3 @@
-from logging            import getLogger
 from chadlib.gui        import (ConnComponent, ConnController, ControllerBase, 
                                 SLComponent, SLController)
 
@@ -13,19 +12,20 @@ class Controller(ConnController, SLController, ControllerBase):
     """
 
     TEXT_SIZE_LIMIT = 128
+    DEFAULT_PORT = 2423
 
     # aliases for tkinter event types
+    KEYPRESS = '2'
     BUTTON_PRESS = '4'
     BUTTON_RELEASE = '5'
     MOTION = '6'
-    KEYPRESS = '2'
 
     def __init__(self, application_name, application_state):
-        FILE_EXTENSION = ".pypaint"
+        FILE_EXTENSION = "." + application_name.lower()
         self.sl_component = SLComponent(self, FILE_EXTENSION, 
                                     (("pypaint files", "*" + FILE_EXTENSION),), 
                                     application_name)
-        self.conn_component = ConnComponent(self, 2423, 
+        self.conn_component = ConnComponent(self, self.DEFAULT_PORT, 
                                             application_state.send_queue, 
                                             application_state.receive_queue)
 
@@ -176,11 +176,10 @@ class Controller(ConnController, SLController, ControllerBase):
         """
         Encode the entire drawing history and write it to the given file.
         """
+        data = b''.join([drawing.encode() for drawing in 
+                                self.application_state.drawing_history
+                                if drawing is not None])
         with open(filename, "wb") as cur_file:
-            # TODO CJR:  remove undos and the drawings prior to them
-            data = b''.join([drawing.encode() for drawing in 
-                                    self.application_state.drawing_history
-                                    if drawing.shape is not DrawingType.PING])
             cur_file.write(data)
 
     def load_logic(self, filename):
@@ -193,8 +192,6 @@ class Controller(ConnController, SLController, ControllerBase):
             data = cur_file.read()
             for drawing in Drawing.decode_drawings(data):
                 self.application_state.add_to_draw_queue(drawing)
-        getLogger(__name__).debug("Drawing history length after load:  "
-                    "{}".format(len(self.application_state.drawing_history)))
 
 
     def _sync_to_connected(self):
@@ -204,8 +201,6 @@ class Controller(ConnController, SLController, ControllerBase):
         Put a clear at the front to clear their canvas before updating them 
         with the history.
         """
-        getLogger(__name__).debug("Drawing history length for sync:  "
-                    "{}".format(len(self.application_state.drawing_history)))
         self.application_state.add_to_send_queue(self._create_clear().encode())
         for drawing in self.application_state.drawing_history:
             if drawing.shape not in {DrawingType.PING, DrawingType.SYNC}:
