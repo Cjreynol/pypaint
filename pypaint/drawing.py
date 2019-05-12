@@ -10,7 +10,7 @@ class Drawing:
     sending/receiving over a network.
     """
 
-    # shape, thickness, # char + 6 hex digits for color, 4 coord values, 
+    # shape, thickness, # character + 6 hex digits for color, 4 coord values, 
     # text length
     MSG_PACK_STR = "iI7s4iI"      
     MSG_SIZE = calcsize(MSG_PACK_STR)
@@ -32,8 +32,8 @@ class Drawing:
             bytes_msg = pack(self.MSG_PACK_STR, self.shape.value, 
                                 self.thickness, self.color.encode(), 
                                 *self.coords, text_length)
-            if self.text is not None:
-                text_pack_str = "{}s".format(len(self.text))
+            if text_length > 0:
+                text_pack_str = "{}s".format(text_length)
                 bytes_msg += pack(text_pack_str, self.text.encode())
 
         except error as err:    # struct.error

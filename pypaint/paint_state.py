@@ -40,6 +40,14 @@ class PaintState:
         return not self.drawing_ids.is_empty
 
     def add_to_draw_queue(self, drawing):
+        """
+        Add the drawing to the queue to be drawn.
+
+        Note:  Important to not include any logic to do with drawing history 
+                here, the program is structured around processing all of that 
+                logic when items come out of the draw queue to match up with 
+                the user's visual knowledge.
+        """
         self.draw_queue.put(drawing)
 
     def get_last_drawing_id(self):
@@ -53,9 +61,9 @@ class PaintState:
         if drawing is not None:
             if drawing.shape is DrawingType.UNDO and self.drawing_history:
                 self.drawing_history.pop()
-            elif drawing.shape is DrawingType.UNDO:
+            elif drawing.shape is DrawingType.CLEAR:
                 self.clear_drawing_ids()
-            elif drawing.shape is not DrawingType.PING:
+            elif drawing.shape not in {DrawingType.PING, DrawingType.SYNC}:
                 self.drawing_history.append(drawing)
 
     def clear_drawing_ids(self):
