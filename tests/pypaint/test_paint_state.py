@@ -20,7 +20,7 @@ class TestPaintState(TestCase):
         test_drawing = MagicMock(shape = DrawingType.LINE)
         test_undo = MagicMock(shape = DrawingType.UNDO)
 
-        self.state.add_last_drawing(None, test_drawing)
-        self.state.add_last_drawing(None, test_undo)
+        self.state.add_last_drawing(test_drawing)
+        self.state.add_last_drawing(test_undo)
 
         self.assertFalse(self.state.drawing_history)

@@ -81,7 +81,7 @@ class PaintCanvas(Canvas):
             r = i * self.PING_RADIUS_FACTOR
             circle_coords = [x - r, y - r, x + r, y + r]
             drawing_id = self.draw_oval(circle_coords, thickness, color)
-            self.application_state.add_last_drawing(drawing_id, None)
+            self.application_state.add_last_drawing_id(drawing_id)
             self.controller.update()  # force the canvas to visually update
             sleep(self.PING_DELAY)
             self.undo()

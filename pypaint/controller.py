@@ -54,7 +54,6 @@ class Controller(ConnController, SLController, ControllerBase):
 
     def disconnect(self):
         self.application_state.send_active = False
-        self.conn_component.disconnect()
 
     def handle_event(self, event):
         """

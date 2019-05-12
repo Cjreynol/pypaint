@@ -5,7 +5,7 @@ from .controller    import Controller
 from .paint_state   import PaintState
 
 
-VERSION = "2.0.7"
+VERSION = "2.0.8"
 APPLICATION_NAME = "PyPaint"
 APPLICATION_DESCRIPTION = "Simple, networked paint application"
 

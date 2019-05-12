@@ -45,10 +45,11 @@ class PaintState:
     def get_last_drawing_id(self):
         return self.drawing_ids.pop()
 
-    def add_last_drawing(self, id_value, drawing):
+    def add_last_drawing_id(self, id_value):
         if id_value is not None:
             self.drawing_ids.push(id_value)
 
+    def add_last_drawing(self, drawing):
         if drawing is not None:
             if drawing.shape is DrawingType.UNDO and self.drawing_history:
                 self.drawing_history.pop()

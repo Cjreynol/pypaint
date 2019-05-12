@@ -28,8 +28,8 @@ class PaintView(View):
                 drawing = self.application_state.draw_queue.get()
                 if drawing is not None:
                     drawing_id = self.draw_shape(drawing)
-                    self.application_state.add_last_drawing(drawing_id, 
-                                                            drawing)
+                    self.application_state.add_last_drawing_id(drawing_id)
+                    self.application_state.add_last_drawing(drawing)
             getLogger(__name__).debug("Draw thread done.")
         Thread(target = f).start()
 
