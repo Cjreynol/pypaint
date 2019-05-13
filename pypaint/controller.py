@@ -35,13 +35,13 @@ class Controller(ConnController, SLController, ControllerBase):
         for drawing in Drawing.decode_drawings(data):
             if drawing.shape is not DrawingType.SYNC:
                 self.application_state.add_to_draw_queue(drawing)
-            else:# if a sync was received, trigger sending history
+            else:   # if a sync was received, trigger sending history
                 self._sync_to_connected()
 
     def start(self):
         self.current_view.start_processing_draw_queue()
         # TODO CJR:  find a better place for this
-        self.window.root.bind("<Key>", self.handle_event)
+        self.window.root.bind("<Escape>", self.handle_event)
         super().start() # must be called at the end, starts the GUI loop
 
     def connection_start(self):
@@ -113,7 +113,8 @@ class Controller(ConnController, SLController, ControllerBase):
         Create the final drawing in the sequence, undoing the last one if 
         necessary, and clearing the drawing state.
         """
-        if DrawingType.is_draggable(self.application_state.current_type):
+        if (DrawingType.is_draggable(self.application_state.current_type) 
+                and self.application_state.dragging):
             self.create_undo()
 
         if (self.application_state.start_pos is not None
