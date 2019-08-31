@@ -32,7 +32,7 @@ setup(
         ],
     keywords = "drawing collaboration paint",
     install_requires = [
-        "chadlib>=0.3.1"
+        "chadlib>=0.3.3"
     ],
     python_requires = ">=3",
     py_modules = ["main"],

@@ -1,9 +1,10 @@
-from tkinter        import (Button, Label, Scale, 
-                            BOTTOM, HORIZONTAL, RAISED, SUNKEN)
+from tkinter            import (Button, Label, Scale, 
+                                BOTTOM, HORIZONTAL, RAISED, SUNKEN)
 
-from chadlib.gui    import ColorPickerDialog, View
+from chadlib.gui        import View
+from chadlib.gui.dialog import ColorPickerDialog
 
-from .drawing_type  import DrawingType
+from .drawing_type      import DrawingType
 
 
 class Toolbar(View):

@@ -2,7 +2,8 @@ from logging            import getLogger
 from threading          import Thread
 from tkinter            import BOTH, LEFT, RIGHT
 
-from chadlib.gui        import TextEntryDialog, View
+from chadlib.gui        import View
+from chadlib.gui.dialog import TextEntryDialog
 
 from .drawing_type      import DrawingType
 from .paint_canvas      import PaintCanvas
